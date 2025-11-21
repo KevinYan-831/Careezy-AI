@@ -35,5 +35,5 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "static"
-build = ["./build.sh"]
+build = ["bash", "build.sh"]
 publicDir = "frontend/dist"
