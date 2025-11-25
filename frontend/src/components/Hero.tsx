@@ -2,7 +2,11 @@ import React from 'react';
 import { ArrowRight, CheckCircle2, FileText, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { useAuthStore } from '../stores/authStore';
+
 export const Hero: React.FC = () => {
+  const { user } = useAuthStore();
+
   return (
     <div className="relative overflow-hidden bg-white pt-16 pb-24 lg:pt-32 lg:pb-40">
       {/* Background decoration */}
@@ -13,7 +17,7 @@ export const Hero: React.FC = () => {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-          
+
           {/* Left Content */}
           <div className="max-w-2xl">
             {/* Subtitle with features */}
@@ -29,7 +33,7 @@ export const Hero: React.FC = () => {
               <span className="relative inline-block">
                 Starts Here
                 {/* Underline decoration */}
-                <svg className="absolute w-full h-3 -bottom-1 left-0 text-teal-500" viewBox="0 0 200 9" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.00025 6.99997C58.5002 6.99997 145.501 4.99997 198 2.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
+                <svg className="absolute w-full h-3 -bottom-1 left-0 text-teal-500" viewBox="0 0 200 9" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.00025 6.99997C58.5002 6.99997 145.501 4.99997 198 2.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>
               </span>
             </h1>
 
@@ -38,13 +42,13 @@ export const Hero: React.FC = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link 
-                to="/dashboard"
-                className="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white bg-royal-600 rounded-full shadow-lg hover:bg-royal-700 hover:shadow-xl transition-all transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-royal-600"
+              <Link
+                to={user ? "/dashboard" : "/signup"}
+                className="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white bg-teal-600 rounded-full shadow-lg hover:bg-teal-700 hover:shadow-xl transition-all transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-600"
               >
-                Get Started <ArrowRight className="ml-2 w-5 h-5" />
+                {user ? "Go to Dashboard" : "Get Started"} <ArrowRight className="ml-2 w-5 h-5" />
               </Link>
-              
+
               <button className="inline-flex items-center justify-center px-8 py-4 text-lg font-medium text-slate-700 bg-white border-2 border-slate-200 rounded-full hover:bg-slate-50 hover:border-slate-300 transition-all">
                 View Templates
               </button>
@@ -66,7 +70,7 @@ export const Hero: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Mock Content Lines */}
               <div className="space-y-6">
                 {[1, 2, 3].map((i) => (
@@ -94,8 +98,8 @@ export const Hero: React.FC = () => {
                 </div>
               </div>
 
-               {/* Floating Badge - ATS */}
-               <div className="absolute -left-6 bottom-20 bg-white p-4 rounded-xl shadow-xl border border-blue-100">
+              {/* Floating Badge - ATS */}
+              <div className="absolute -left-6 bottom-20 bg-white p-4 rounded-xl shadow-xl border border-blue-100">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
                     <FileText className="w-5 h-5" />

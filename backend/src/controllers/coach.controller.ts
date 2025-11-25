@@ -119,8 +119,20 @@ export class CoachController {
                 content: message
             });
 
+            // Fetch previous messages for context (limit to last 10 for now)
+            const { data: history } = await supabase
+                .from('coaching_messages')
+                .select('role, content')
+                .eq('session_id', id)
+                .order('created_at', { ascending: true })
+                .limit(10);
+
+            const messages = history ? history.map(msg => ({ role: msg.role, content: msg.content })) : [];
+            // Ensure the latest message is included if not already (it should be because we just inserted it, but race conditions might apply if we don't wait for insert to propagate or if we query before insert completes - wait, we awaited insert)
+            // Actually, we just inserted it. So fetching history SHOULD include it.
+
             // Get AI response
-            const aiResponse = await AIService.chat(message);
+            const aiResponse = await AIService.chat(messages);
 
             // Save AI response
             await supabase.from('coaching_messages').insert({
@@ -136,19 +148,81 @@ export class CoachController {
         }
     }
 
-    // Legacy chat method for backward compatibility if needed, or remove it
+    // Chat method that auto-creates session and saves messages
     static async chat(req: AuthRequest, res: Response) {
-        // Redirect to sendMessage logic or keep simple stateless chat
-        // For now, let's keep it simple stateless as before but using AuthRequest
         try {
             const { message } = req.body;
+            const userId = req.user?.id;
+
+            if (!userId) {
+                res.status(401).json({ error: 'Unauthorized' });
+                return;
+            }
+
             if (!message) {
                 res.status(400).json({ error: 'Message is required' });
                 return;
             }
 
-            const response = await AIService.chat(message);
-            res.json({ response });
+            // Check for existing active session or create one
+            let { data: sessions } = await supabase
+                .from('coaching_sessions')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('is_active', true)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            let sessionId: string;
+
+            if (!sessions || sessions.length === 0) {
+                // Create new session
+                const { data: newSession, error: createError } = await supabase
+                    .from('coaching_sessions')
+                    .insert([{
+                        user_id: userId,
+                        title: 'Career Coach Chat',
+                        session_type: 'general'
+                    }])
+                    .select('id')
+                    .single();
+
+                if (createError || !newSession) {
+                    throw new Error('Failed to create session');
+                }
+                sessionId = newSession.id;
+            } else {
+                sessionId = sessions[0].id;
+            }
+
+            // Save user message
+            await supabase.from('coaching_messages').insert({
+                session_id: sessionId,
+                role: 'user',
+                content: message
+            });
+
+            // Fetch conversation history for context
+            const { data: history } = await supabase
+                .from('coaching_messages')
+                .select('role, content')
+                .eq('session_id', sessionId)
+                .order('created_at', { ascending: true })
+                .limit(20);
+
+            const messages = history ? history.map(msg => ({ role: msg.role, content: msg.content })) : [];
+
+            // Get AI response
+            const aiResponse = await AIService.chat(messages);
+
+            // Save AI response
+            await supabase.from('coaching_messages').insert({
+                session_id: sessionId,
+                role: 'assistant',
+                content: aiResponse
+            });
+
+            res.json({ response: aiResponse });
         } catch (error) {
             console.error('Error in coach chat:', error);
             res.status(500).json({ error: 'Failed to get chat response' });

@@ -1,120 +1,86 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { Navbar } from '../components/Navbar';
+import { FileText, Check, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Check, ArrowRight, Layout } from 'lucide-react';
 
-interface Template {
-  id: number;
-  name: string;
-  category: string;
-  color: string;
-  image: string; // In a real app, these would be actual images
-}
-
-const TEMPLATES: Template[] = [
-  { id: 1, name: "The Professional", category: "Traditional", color: "bg-slate-200", image: "Simple layout with header and columns" },
-  { id: 2, name: "Modern Creative", category: "Creative", color: "bg-teal-100", image: "Bold header with sidebar" },
-  { id: 3, name: "Tech Minimalist", category: "Tech", color: "bg-blue-100", image: "Monospace font accents" },
-  { id: 4, name: "Executive", category: "Traditional", color: "bg-slate-300", image: "Dense information layout" },
-  { id: 5, name: "Designer Portfolio", category: "Creative", color: "bg-purple-100", image: "Gallery style sections" },
-  { id: 6, name: "Start-Up Ready", category: "Tech", color: "bg-green-100", image: "Clean and punchy" },
+const templates = [
+  {
+    id: 'jake',
+    name: "Jake's Resume",
+    description: 'A clean, ATS-friendly LaTeX-style template perfect for software engineers and technical roles.',
+    image: '/images/jake-resume.png', // Using the local image
+    features: ['ATS-Optimized', 'LaTeX Style', 'Clean Layout']
+  }
 ];
 
-const CATEGORIES = ["All", "Traditional", "Creative", "Tech"];
-
 export const Templates: React.FC = () => {
-  const [filter, setFilter] = useState("All");
-
-  const filteredTemplates = filter === "All" 
-    ? TEMPLATES 
-    : TEMPLATES.filter(t => t.category === filter);
-
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div className="min-h-screen bg-slate-50">
       <Navbar />
-      
-      <div className="bg-slate-50 pt-20 pb-12 px-4">
-        <div className="max-w-7xl mx-auto text-center animate-fade-in-up">
-          <h1 className="text-4xl font-bold text-slate-900 mb-4">Choose your winning look</h1>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto mb-8">
-            Professionally designed, ATS-friendly templates that help you stand out from the pile.
+
+      <div className="pt-24 pb-12 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-4xl font-extrabold text-slate-900 mb-4">
+            Professional Resume Templates
+          </h1>
+          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+            Choose from our collection of ATS-optimized templates designed to get you hired.
           </p>
-          
-          {/* Categories */}
-          <div className="flex flex-wrap justify-center gap-2">
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setFilter(cat)}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
-                  filter === cat 
-                    ? 'bg-teal-600 text-white shadow-md' 
-                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredTemplates.map((template, i) => (
-            <div 
-              key={template.id} 
-              className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in-up"
-              style={{ animationDelay: `${i * 100}ms` }}
-            >
-              {/* Mockup Preview */}
-              <div className={`h-80 ${template.color} relative flex items-center justify-center p-8`}>
-                <div className="w-full h-full bg-white shadow-sm rounded border border-slate-100/50 flex flex-col p-4 opacity-80 group-hover:opacity-100 transition-opacity">
-                  {/* Skeleton Resume UI */}
-                  <div className="flex gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-slate-200"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-3 bg-slate-800 rounded w-3/4"></div>
-                      <div className="h-2 bg-slate-300 rounded w-1/2"></div>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="h-2 bg-slate-200 rounded w-full"></div>
-                    <div className="h-2 bg-slate-200 rounded w-full"></div>
-                    <div className="h-2 bg-slate-200 rounded w-5/6"></div>
-                  </div>
-                  <div className="mt-6 h-2 bg-teal-500/20 rounded w-1/3 mb-2"></div>
-                  <div className="space-y-2">
-                     <div className="h-1.5 bg-slate-200 rounded w-full"></div>
-                     <div className="h-1.5 bg-slate-200 rounded w-full"></div>
-                  </div>
-                </div>
-                
-                {/* Overlay Action */}
-                <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 backdrop-blur-[2px]">
-                  <Link 
-                    to="/resume" 
-                    className="px-6 py-3 bg-white text-slate-900 font-bold rounded-full transform scale-90 group-hover:scale-100 transition-all duration-200 shadow-lg"
+          {templates.map((template) => (
+            <div key={template.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow group">
+              <div className="aspect-[3/4] bg-slate-100 relative overflow-hidden">
+                <img
+                  src={template.image}
+                  alt={template.name}
+                  className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-8">
+                  <Link
+                    to={`/resume/new?template=${template.id}`}
+                    className="bg-white text-slate-900 px-6 py-2 rounded-full font-bold hover:bg-teal-50 transition-colors"
                   >
-                    Use This Template
+                    Use Template
                   </Link>
                 </div>
               </div>
-
               <div className="p-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-900">{template.name}</h3>
-                    <p className="text-sm text-slate-500">{template.category}</p>
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-colors">
-                    <Layout className="w-4 h-4" />
-                  </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{template.name}</h3>
+                <p className="text-slate-600 text-sm mb-4">{template.description}</p>
+                <div className="space-y-2">
+                  {template.features.map((feature, idx) => (
+                    <div key={idx} className="flex items-center text-sm text-slate-500">
+                      <Check className="w-4 h-4 text-teal-600 mr-2" />
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 pt-6 border-t border-slate-100">
+                  <Link
+                    to={`/resume/new?template=${template.id}`}
+                    className="flex items-center justify-center w-full text-teal-600 font-semibold hover:text-teal-700 group-hover:gap-2 transition-all"
+                  >
+                    Create Resume <ArrowRight className="w-4 h-4 ml-1" />
+                  </Link>
                 </div>
               </div>
             </div>
           ))}
+
+          {/* Coming Soon Card */}
+          <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center p-8 text-center min-h-[400px]">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+              <FileText className="w-8 h-8 text-slate-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">More Templates Coming Soon</h3>
+            <p className="text-slate-500 max-w-xs">
+              We are working on adding more professional templates. Stay tuned!
+            </p>
+          </div>
         </div>
       </div>
     </div>

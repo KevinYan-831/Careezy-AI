@@ -16,6 +16,9 @@ import { Internships } from './src/pages/Internships';
 import { CareerCoach } from './src/pages/CareerCoach';
 import { Pricing } from './src/pages/Pricing';
 import { Profile } from './src/pages/Profile';
+import { Templates } from './src/pages/Templates';
+import { Features } from './src/pages/Features';
+import { Onboarding } from './src/pages/Onboarding';
 
 const queryClient = new QueryClient();
 
@@ -36,6 +39,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/templates" element={<Templates />} />
+          <Route path="/features" element={<Features />} />
 
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
@@ -45,6 +50,7 @@ function App() {
             <Route path="/internships" element={<Internships />} />
             <Route path="/coach" element={<CareerCoach />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/onboarding" element={<Onboarding />} />
           </Route>
 
           {/* Catch all */}

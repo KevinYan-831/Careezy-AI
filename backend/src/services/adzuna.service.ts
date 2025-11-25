@@ -10,8 +10,12 @@ const BASE_URL = 'https://api.adzuna.com/v1/api/jobs';
 export class AdzunaService {
     static async searchInternships(query: string, location: string, country: string = 'us') {
         if (!ADZUNA_APP_ID || !ADZUNA_API_KEY) {
+            console.error('Adzuna credentials missing in .env');
             throw new Error('Adzuna credentials missing');
         }
+
+        console.log(`Searching Adzuna: query="${query}", location="${location}", country="${country}"`);
+        console.log(`Using App ID: ${ADZUNA_APP_ID.substring(0, 4)}...`);
 
         try {
             const response = await axios.get(`${BASE_URL}/${country}/search/1`, {
@@ -21,12 +25,19 @@ export class AdzunaService {
                     what: query || 'internship',
                     where: location,
                     content_type: 'application/json',
+                    results_per_page: 20
                 },
             });
 
+            console.log(`Adzuna API Response: Found ${response.data.results?.length} results`);
             return response.data.results;
-        } catch (error) {
-            console.error('Adzuna API Error:', error);
+        } catch (error: any) {
+            if (error.response) {
+                console.error('Adzuna API Error Data:', JSON.stringify(error.response.data, null, 2));
+                console.error('Adzuna API Error Status:', error.response.status);
+            } else {
+                console.error('Adzuna API Error:', error.message);
+            }
             throw new Error('Failed to fetch internships');
         }
     }

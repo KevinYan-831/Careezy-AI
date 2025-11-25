@@ -21,8 +21,8 @@ app.use(cors({
 app.use(express.json());
 
 // Rate limiting
-import { errorHandler } from './middleware/error.middleware.js';
-import { rateLimiter } from './middleware/rateLimit.middleware.js';
+import { errorHandler } from './middleware/error.middleware';
+import { rateLimiter } from './middleware/rateLimit.middleware';
 
 // Rate limiting
 app.use(rateLimiter);
@@ -32,10 +32,10 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-import resumeRoutes from './routes/resume.routes.js';
-import internshipRoutes from './routes/internship.routes.js';
-import coachRoutes from './routes/coach.routes.js';
-import paymentRoutes from './routes/payment.routes.js';
+import resumeRoutes from './routes/resume.routes';
+import internshipRoutes from './routes/internship.routes';
+import coachRoutes from './routes/coach.routes';
+import paymentRoutes from './routes/payment.routes';
 
 // Routes
 app.use('/api/resumes', resumeRoutes);

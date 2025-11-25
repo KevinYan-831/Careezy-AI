@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Send, Bot, User, Sparkles, ThumbsUp, ThumbsDown, MoreHorizontal, Lightbulb } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
+import { useAuthStore } from '../stores/authStore';
 import toast from 'react-hot-toast';
 
 interface Message {
@@ -20,12 +21,14 @@ const SUGGESTED_PROMPTS = [
 ];
 
 export const CareerCoach: React.FC = () => {
+  const { user, profile } = useAuthStore();
+  const userName = profile?.full_name || user?.user_metadata?.full_name || 'there';
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: "Hi Alex! I'm your AI Career Coach. I can help you with interview prep, salary negotiation, or career planning. What's on your mind today?",
+      text: `Hi ${userName}! I'm your AI Career Coach. I can help you with interview prep, salary negotiation, or career planning. What's on your mind today?`,
       sender: 'bot',
       timestamp: new Date()
     }

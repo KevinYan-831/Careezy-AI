@@ -41,14 +41,11 @@ export class AIService {
     }
   }
 
-  static async chat(message: string) {
+  static async chat(messages: any[]) {
     try {
       const completion = await openai.chat.completions.create({
         model: "deepseek-reasoner",
-        messages: [{
-          role: "user",
-          content: message
-        }],
+        messages: messages,
       });
       return completion.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
     } catch (error) {

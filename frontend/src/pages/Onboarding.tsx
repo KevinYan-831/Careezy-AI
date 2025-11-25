@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { GraduationCap, Briefcase, User, Calendar, ArrowRight, Save, ArrowLeft } from 'lucide-react';
+import { GraduationCap, Briefcase, User, Calendar, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Link } from 'react-router-dom';
 
-export const Profile: React.FC = () => {
+export const Onboarding: React.FC = () => {
     const navigate = useNavigate();
-    const { updateProfile, user, profile } = useAuthStore();
+    const { updateProfile, user } = useAuthStore();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         university: '',
@@ -16,18 +15,6 @@ export const Profile: React.FC = () => {
         target_role: '',
         bio: ''
     });
-
-    useEffect(() => {
-        if (profile) {
-            setFormData({
-                university: profile.university || '',
-                major: profile.major || '',
-                graduation_year: profile.graduation_year || '',
-                target_role: profile.target_role || '',
-                bio: profile.bio || ''
-            });
-        }
-    }, [profile]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -40,6 +27,7 @@ export const Profile: React.FC = () => {
         try {
             await updateProfile(formData);
             toast.success('Profile updated successfully!');
+            navigate('/dashboard');
         } catch (error) {
             console.error('Error updating profile:', error);
             toast.error('Failed to update profile. Please try again.');
@@ -58,17 +46,13 @@ export const Profile: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-            <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 animate-fade-in relative">
-                <Link to="/dashboard" className="absolute top-8 left-8 text-slate-400 hover:text-slate-600 transition-colors">
-                    <ArrowLeft className="w-5 h-5" />
-                </Link>
-
+            <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 animate-fade-in">
                 <div className="text-center mb-8">
                     <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <User className="w-8 h-8 text-teal-600" />
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-900">Edit Profile</h1>
-                    <p className="text-slate-500 mt-2">Update your personal information.</p>
+                    <h1 className="text-2xl font-bold text-slate-900">Complete Your Profile</h1>
+                    <p className="text-slate-500 mt-2">Tell us a bit more about yourself so we can personalize your experience.</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -83,6 +67,7 @@ export const Profile: React.FC = () => {
                             onChange={handleChange}
                             placeholder="e.g. Northwestern University"
                             className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
+
                         />
                     </div>
 
@@ -97,6 +82,7 @@ export const Profile: React.FC = () => {
                             onChange={handleChange}
                             placeholder="e.g. Computer Science"
                             className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
+
                         />
                     </div>
 
@@ -111,6 +97,7 @@ export const Profile: React.FC = () => {
                             onChange={handleChange}
                             placeholder="e.g. 2025"
                             className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
+
                         />
                     </div>
 
@@ -125,6 +112,7 @@ export const Profile: React.FC = () => {
                             onChange={handleChange}
                             placeholder="e.g. Software Engineer"
                             className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
+
                         />
                     </div>
 
@@ -140,14 +128,23 @@ export const Profile: React.FC = () => {
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-teal-600 text-white py-3 rounded-lg font-bold hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                        {loading ? 'Saving...' : 'Save Changes'}
-                        {!loading && <Save className="w-5 h-5" />}
-                    </button>
+                    <div className="space-y-3">
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-teal-600 text-white py-3 rounded-lg font-bold hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                            {loading ? 'Saving...' : 'Complete Profile'}
+                            {!loading && <ArrowRight className="w-5 h-5" />}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/dashboard')}
+                            className="w-full bg-slate-100 text-slate-700 py-3 rounded-lg font-medium hover:bg-slate-200 transition-colors"
+                        >
+                            Skip for now
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>

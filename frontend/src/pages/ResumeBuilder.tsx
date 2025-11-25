@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, Sparkles, Plus, Trash2, Save, Briefcase, GraduationCap, Check } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import { api } from '../services/api';
+import { JakeTemplate } from '../components/resume-templates/JakeTemplate';
 
 // Types for our resume data
 interface Experience {
@@ -23,8 +24,13 @@ interface Education {
 }
 
 export const ResumeBuilder: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const { id } = useParams(); // Get ID from URL if present
+  const navigate = useNavigate();
+  const templateId = searchParams.get('template');
   const [activeSection, setActiveSection] = useState('personal');
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [currentResumeId, setCurrentResumeId] = useState<string | null>(id || null);
 
   const [resumeData, setResumeData] = useState({
     fullName: 'Alex Student',
@@ -39,8 +45,30 @@ export const ResumeBuilder: React.FC = () => {
     education: [
       { id: 1, degree: 'B.S. Computer Science', school: 'State University', date: '2022 - 2026', description: 'GPA: 3.8/4.0. Dean\'s List.' }
     ] as Education[],
+    projects: [
+      { id: 1, name: 'Project Name', technologies: 'React, Node.js', date: 'Jan 2024', description: 'Description of the project.' }
+    ],
     skills: ['React', 'TypeScript', 'Node.js', 'Python', 'TailwindCSS', 'Git']
   });
+
+  // Fetch resume if editing
+  useEffect(() => {
+    if (id) {
+      const fetchResume = async () => {
+        try {
+          const data = await api.resumes.get(id);
+          // Assuming data.content holds the resume fields
+          if (data && data.content) {
+            setResumeData(data.content);
+          }
+        } catch (error) {
+          console.error('Error fetching resume:', error);
+          toast.error('Failed to load resume');
+        }
+      };
+      fetchResume();
+    }
+  }, [id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, field: string) => {
     setResumeData({ ...resumeData, [field]: e.target.value });
@@ -96,6 +124,31 @@ export const ResumeBuilder: React.FC = () => {
     toast.success('Education removed');
   };
 
+  // Projects Handlers
+  const addProject = () => {
+    const newProject = {
+      id: Date.now(),
+      name: 'Project Name',
+      technologies: 'Tech Stack',
+      date: 'Date',
+      description: 'Description'
+    };
+    setResumeData({ ...resumeData, projects: [...resumeData.projects, newProject] });
+    toast.success('Project added');
+  };
+
+  const updateProject = (id: number, field: string, value: string) => {
+    const updatedProjects = resumeData.projects.map(proj =>
+      proj.id === id ? { ...proj, [field]: value } : proj
+    );
+    setResumeData({ ...resumeData, projects: updatedProjects });
+  };
+
+  const removeProject = (id: number) => {
+    setResumeData({ ...resumeData, projects: resumeData.projects.filter(proj => proj.id !== id) });
+    toast.success('Project removed');
+  };
+
   // Skills Handlers
   const updateSkills = (value: string) => {
     setResumeData({ ...resumeData, skills: value.split(',').map(s => s.trim()) });
@@ -105,22 +158,17 @@ export const ResumeBuilder: React.FC = () => {
   const handleAiImprove = async () => {
     setIsAiLoading(true);
     try {
-      // Construct a string representation of the resume for the AI
       const resumeContent = `
         Name: ${resumeData.fullName}
         Title: ${resumeData.title}
         Summary: ${resumeData.summary}
         Experience: ${resumeData.experience.map(e => `${e.role} at ${e.company}: ${e.description}`).join('\n')}
         Education: ${resumeData.education.map(e => `${e.degree} at ${e.school}: ${e.description}`).join('\n')}
+        Projects: ${resumeData.projects.map(p => `${p.name} (${p.technologies}): ${p.description}`).join('\n')}
         Skills: ${resumeData.skills.join(', ')}
       `;
 
       const { suggestions } = await api.resumes.getSuggestions(resumeContent);
-
-      // For now, let's just update the summary with the suggestion if it's a string, 
-      // or handle structured suggestions. Assuming the AI returns a text suggestion for the summary.
-      // In a real app, we might want to show a modal with suggestions.
-      // Here we'll assume the backend returns a refined summary.
 
       if (typeof suggestions === 'string') {
         setResumeData(prev => ({
@@ -137,7 +185,6 @@ export const ResumeBuilder: React.FC = () => {
         toast.success("AI suggestions received (check console)");
         console.log(suggestions);
       }
-
     } catch (error) {
       console.error(error);
       toast.error('Failed to get AI suggestions');
@@ -148,8 +195,18 @@ export const ResumeBuilder: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      await api.resumes.create(resumeData);
-      toast.success('Resume saved successfully!');
+      if (currentResumeId) {
+        await api.resumes.update(currentResumeId, resumeData);
+        toast.success('Resume updated successfully!');
+      } else {
+        const response = await api.resumes.create(resumeData);
+        if (response && response.resume && response.resume.id) {
+          setCurrentResumeId(response.resume.id);
+          // Optionally navigate to the edit URL to persist state on reload
+          // navigate(`/resume/${response.resume.id}`, { replace: true });
+        }
+        toast.success('Resume created successfully!');
+      }
     } catch (error) {
       console.error(error);
       toast.error('Failed to save resume');
@@ -212,13 +269,13 @@ export const ResumeBuilder: React.FC = () => {
         <div className="w-1/2 bg-white border-r border-slate-200 flex flex-col print:hidden">
           {/* Tabs */}
           <div className="flex border-b border-slate-200 overflow-x-auto no-scrollbar">
-            {['personal', 'experience', 'education', 'skills'].map((tab) => (
+            {['personal', 'experience', 'education', 'projects', 'skills'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveSection(tab)}
                 className={`px-6 py-4 text-sm font-medium capitalize border-b-2 transition-colors whitespace-nowrap ${activeSection === tab
-                    ? 'border-teal-600 text-teal-600 bg-teal-50/50'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                  ? 'border-teal-600 text-teal-600 bg-teal-50/50'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
                   }`}
               >
                 {tab}
@@ -424,6 +481,66 @@ export const ResumeBuilder: React.FC = () => {
                 </div>
               )}
 
+              {activeSection === 'projects' && (
+                <div className="space-y-6 animate-fade-in">
+                  <div className="flex justify-between items-center mb-2">
+                    <h2 className="text-lg font-bold text-slate-900">Projects</h2>
+                    <button
+                      onClick={addProject}
+                      className="text-sm font-medium text-teal-600 hover:bg-teal-50 px-3 py-1.5 rounded-md flex items-center gap-1 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" /> Add Project
+                    </button>
+                  </div>
+
+                  {resumeData.projects.map((proj) => (
+                    <div key={proj.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative group">
+                      <button
+                        onClick={() => removeProject(proj.id)}
+                        className="absolute top-4 right-4 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-red-50 rounded"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">Project Name</label>
+                          <input
+                            value={proj.name}
+                            onChange={(e) => updateProject(proj.id, 'name', e.target.value)}
+                            className="w-full font-semibold bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">Technologies</label>
+                          <input
+                            value={proj.technologies}
+                            onChange={(e) => updateProject(proj.id, 'technologies', e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1 mb-3">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Date</label>
+                        <input
+                          value={proj.date}
+                          onChange={(e) => updateProject(proj.id, 'date', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Description</label>
+                        <textarea
+                          value={proj.description}
+                          onChange={(e) => updateProject(proj.id, 'description', e.target.value)}
+                          rows={3}
+                          className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none resize-none"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {activeSection === 'skills' && (
                 <div className="space-y-4 animate-fade-in">
                   <h2 className="text-lg font-bold text-slate-900 mb-4">Skills</h2>
@@ -457,85 +574,143 @@ export const ResumeBuilder: React.FC = () => {
         {/* Right Panel - Preview */}
         <div className="w-full md:w-1/2 bg-slate-200/50 overflow-y-auto flex justify-center p-8 print:w-full print:p-0 print:bg-white">
           <div className="w-[210mm] min-h-[297mm] bg-white shadow-xl print:shadow-none transition-all transform origin-top scale-[0.8] sm:scale-90 md:scale-95 lg:scale-100 print:scale-100 print:m-0">
-            <div className="p-12 h-full flex flex-col text-slate-800">
-              {/* Resume Header */}
-              <div className="border-b-2 border-slate-800 pb-6 mb-6">
-                <h1 className="text-4xl font-bold uppercase tracking-tight text-slate-900 mb-2">{resumeData.fullName}</h1>
-                <p className="text-xl text-slate-600 font-medium mb-4">{resumeData.title}</p>
-                <div className="flex gap-4 text-sm text-slate-500 flex-wrap">
-                  <span>{resumeData.email}</span>
-                  {resumeData.email && <span>•</span>}
-                  <span>{resumeData.phone}</span>
-                  {resumeData.phone && <span>•</span>}
-                  <span>{resumeData.location}</span>
+            {templateId === 'jake' ? (
+              <JakeTemplate
+                data={{
+                  personalInfo: {
+                    fullName: resumeData.fullName,
+                    email: resumeData.email,
+                    phone: resumeData.phone,
+                    linkedin: 'linkedin.com/in/alex', // Placeholder or add field
+                    github: 'github.com/alex', // Placeholder or add field
+                    website: 'alex.com' // Placeholder or add field
+                  },
+                  education: resumeData.education.map(edu => ({
+                    school: edu.school,
+                    degree: edu.degree,
+                    location: 'Location', // Placeholder or add field
+                    date: edu.date
+                  })),
+                  experience: resumeData.experience.map(exp => ({
+                    company: exp.company,
+                    title: exp.role,
+                    location: 'Location', // Placeholder or add field
+                    date: exp.date,
+                    description: exp.description.split('. ').filter(Boolean).map(d => d.endsWith('.') ? d : d + '.')
+                  })),
+                  projects: resumeData.projects.map(proj => ({
+                    name: proj.name,
+                    technologies: proj.technologies,
+                    date: proj.date,
+                    description: proj.description.split('. ').filter(Boolean).map(d => d.endsWith('.') ? d : d + '.')
+                  })),
+                  skills: {
+                    languages: resumeData.skills.join(', '),
+                    frameworks: '',
+                    tools: '',
+                  }
+                }}
+              />
+            ) : (
+              <div className="p-12 h-full flex flex-col text-slate-800">
+                {/* Resume Header */}
+                <div className="border-b-2 border-slate-800 pb-6 mb-6">
+                  <h1 className="text-4xl font-bold uppercase tracking-tight text-slate-900 mb-2">{resumeData.fullName}</h1>
+                  <p className="text-xl text-slate-600 font-medium mb-4">{resumeData.title}</p>
+                  <div className="flex gap-4 text-sm text-slate-500 flex-wrap">
+                    <span>{resumeData.email}</span>
+                    {resumeData.email && <span>•</span>}
+                    <span>{resumeData.phone}</span>
+                    {resumeData.phone && <span>•</span>}
+                    <span>{resumeData.location}</span>
+                  </div>
+                </div>
+
+                {/* Resume Content */}
+                <div className="space-y-6">
+                  {/* Summary */}
+                  {resumeData.summary && (
+                    <section>
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Professional Summary</h3>
+                      <p className="text-sm leading-relaxed text-slate-700">{resumeData.summary}</p>
+                    </section>
+                  )}
+
+                  {/* Experience */}
+                  {resumeData.experience.length > 0 && (
+                    <section>
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Experience</h3>
+                      <div className="space-y-4">
+                        {resumeData.experience.map((exp) => (
+                          <div key={exp.id}>
+                            <div className="flex justify-between items-baseline mb-1">
+                              <h4 className="font-bold text-slate-800">{exp.role}</h4>
+                              <span className="text-xs text-slate-500 font-medium">{exp.date}</span>
+                            </div>
+                            <div className="text-sm text-teal-700 font-medium mb-1">{exp.company}</div>
+                            <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{exp.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Education */}
+                  {resumeData.education.length > 0 && (
+                    <section>
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Education</h3>
+                      <div className="space-y-4">
+                        {resumeData.education.map((edu) => (
+                          <div key={edu.id}>
+                            <div className="flex justify-between items-baseline mb-1">
+                              <h4 className="font-bold text-slate-800">{edu.degree}</h4>
+                              <span className="text-xs text-slate-500 font-medium">{edu.date}</span>
+                            </div>
+                            <div className="text-sm text-slate-700 mb-1">{edu.school}</div>
+                            <p className="text-sm text-slate-600">{edu.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Projects */}
+                  {resumeData.projects.length > 0 && (
+                    <section>
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Projects</h3>
+                      <div className="space-y-4">
+                        {resumeData.projects.map((proj) => (
+                          <div key={proj.id}>
+                            <div className="flex justify-between items-baseline mb-1">
+                              <h4 className="font-bold text-slate-800">{proj.name}</h4>
+                              <span className="text-xs text-slate-500 font-medium">{proj.date}</span>
+                            </div>
+                            <div className="text-sm text-teal-700 font-medium mb-1">{proj.technologies}</div>
+                            <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{proj.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Skills */}
+                  {resumeData.skills.length > 0 && resumeData.skills[0] !== "" && (
+                    <section>
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Skills</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {resumeData.skills.map((skill, i) => (
+                          skill.trim() && (
+                            <span key={i} className="text-xs font-medium bg-slate-100 text-slate-700 px-2 py-1 rounded print:border print:border-slate-200">
+                              {skill}
+                            </span>
+                          )
+                        ))}
+                      </div>
+                    </section>
+                  )}
                 </div>
               </div>
-
-              {/* Resume Content */}
-              <div className="space-y-6">
-                {/* Summary */}
-                {resumeData.summary && (
-                  <section>
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Professional Summary</h3>
-                    <p className="text-sm leading-relaxed text-slate-700">{resumeData.summary}</p>
-                  </section>
-                )}
-
-                {/* Experience */}
-                {resumeData.experience.length > 0 && (
-                  <section>
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Experience</h3>
-                    <div className="space-y-4">
-                      {resumeData.experience.map((exp) => (
-                        <div key={exp.id}>
-                          <div className="flex justify-between items-baseline mb-1">
-                            <h4 className="font-bold text-slate-800">{exp.role}</h4>
-                            <span className="text-xs text-slate-500 font-medium">{exp.date}</span>
-                          </div>
-                          <div className="text-sm text-teal-700 font-medium mb-1">{exp.company}</div>
-                          <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{exp.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {/* Education */}
-                {resumeData.education.length > 0 && (
-                  <section>
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Education</h3>
-                    <div className="space-y-4">
-                      {resumeData.education.map((edu) => (
-                        <div key={edu.id}>
-                          <div className="flex justify-between items-baseline mb-1">
-                            <h4 className="font-bold text-slate-800">{edu.degree}</h4>
-                            <span className="text-xs text-slate-500 font-medium">{edu.date}</span>
-                          </div>
-                          <div className="text-sm text-slate-700 mb-1">{edu.school}</div>
-                          <p className="text-sm text-slate-600">{edu.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {/* Skills */}
-                {resumeData.skills.length > 0 && resumeData.skills[0] !== "" && (
-                  <section>
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Skills</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {resumeData.skills.map((skill, i) => (
-                        skill.trim() && (
-                          <span key={i} className="text-xs font-medium bg-slate-100 text-slate-700 px-2 py-1 rounded print:border print:border-slate-200">
-                            {skill}
-                          </span>
-                        )
-                      ))}
-                    </div>
-                  </section>
-                )}
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

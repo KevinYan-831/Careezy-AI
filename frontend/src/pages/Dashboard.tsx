@@ -1,8 +1,10 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { CareezyLogo } from '../components/CareezyLogo';
-import { FileText, Search, Bot, ArrowRight, Bell, User, Settings, LogOut } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { FileText, Search, Bot, ArrowRight, Bell, User, Settings, LogOut, Plus } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
+import { supabase } from '../lib/supabase';
+import { formatDistanceToNow } from 'date-fns';
 
 const DashboardCard = ({ title, description, icon: Icon, colorClass, bgClass, to }: any) => (
   <Link to={to} className="group relative overflow-hidden bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 hover:-translate-y-1 cursor-pointer">
@@ -21,6 +23,59 @@ const DashboardCard = ({ title, description, icon: Icon, colorClass, bgClass, to
 );
 
 export const Dashboard: React.FC = () => {
+  const { user, profile, signOut } = useAuthStore();
+  const navigate = useNavigate();
+  const [resumes, setResumes] = useState<any[]>([]);
+  const [loadingResumes, setLoadingResumes] = useState(true);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const fullName = profile?.full_name || user?.user_metadata?.full_name || 'User';
+  const initials = fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+
+  // Calculate profile strength
+  const calculateStrength = () => {
+    if (!profile) return 0;
+    let score = 20; // Base score for account
+    if (profile.university) score += 20;
+    if (profile.major) score += 20;
+    if (profile.target_role) score += 20;
+    if (profile.bio) score += 20;
+    return score;
+  };
+
+  const strength = calculateStrength();
+  const strengthLabel = strength >= 80 ? 'All-Star' : strength >= 60 ? 'Advanced' : strength >= 40 ? 'Intermediate' : 'Beginner';
+  const strengthColor = strength >= 80 ? 'bg-green-100 text-green-700' : strength >= 60 ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700';
+  const strengthBarColor = strength >= 80 ? 'from-green-500 to-green-400' : strength >= 60 ? 'from-teal-500 to-teal-400' : 'from-amber-500 to-amber-400';
+
+  useEffect(() => {
+    const fetchResumes = async () => {
+      if (!user) return;
+      try {
+        const { data, error } = await supabase
+          .from('resumes')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(3);
+
+        if (error) throw error;
+        setResumes(data || []);
+      } catch (err) {
+        console.error('Error fetching resumes:', err);
+      } finally {
+        setLoadingResumes(false);
+      }
+    };
+
+    fetchResumes();
+  }, [user]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
       {/* Top Navigation Bar */}
@@ -36,20 +91,26 @@ export const Dashboard: React.FC = () => {
             </button>
             <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
               <div className="text-right hidden sm:block">
-                <div className="text-sm font-bold text-slate-900">Alex Student</div>
-                <div className="text-xs text-slate-500">Free Plan</div>
+                <div className="text-sm font-bold text-slate-900">{fullName}</div>
+                <div className="text-xs text-slate-500">
+                  {profile?.university ? `${profile.university}` : 'Free Plan'}
+                </div>
               </div>
-              <div className="relative group cursor-pointer">
+              <div className="relative group cursor-pointer" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
                 <div className="w-10 h-10 bg-gradient-to-br from-teal-100 to-teal-200 rounded-full flex items-center justify-center text-teal-700 font-bold border border-teal-200 shadow-sm group-hover:shadow-md transition-all">
-                  AS
+                  {initials}
                 </div>
-                {/* Dropdown placeholder */}
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 hidden group-hover:block transform opacity-0 group-hover:opacity-100 transition-all duration-200 origin-top-right z-50">
-                   <Link to="/" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-teal-600">Profile</Link>
-                   <Link to="/" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-teal-600">Settings</Link>
-                   <div className="h-px bg-slate-100 my-1"></div>
-                   <Link to="/" className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Sign out</Link>
-                </div>
+                {/* Dropdown */}
+                {isDropdownOpen && (
+                  <div className="absolute right-0 top-full pt-2 w-48 z-50">
+                    <div className="bg-white rounded-xl shadow-lg border border-slate-100 py-1 animate-fade-in">
+                      <Link to="/profile" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-teal-600">Edit Profile</Link>
+                      <Link to="/settings" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-teal-600">Settings</Link>
+                      <div className="h-px bg-slate-100 my-1"></div>
+                      <button onClick={handleSignOut} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Sign out</button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -59,31 +120,31 @@ export const Dashboard: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10">
         <div className="mb-10 animate-fade-in-up">
-          <h1 className="text-3xl font-bold text-slate-900">Welcome back, Alex! 👋</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Welcome back, {fullName.split(' ')[0]}! 👋</h1>
           <p className="text-slate-600 mt-2 text-lg">Ready to take the next step in your career journey?</p>
         </div>
 
         {/* Tools Grid */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
-          <DashboardCard 
-            to="/resume"
-            title="Resume Builder" 
+          <DashboardCard
+            to="/templates"
+            title="Resume Builder"
             description="Create ATS-friendly resumes with professional templates and AI suggestions."
             icon={FileText}
             colorClass="text-blue-600"
             bgClass="bg-blue-50"
           />
-          <DashboardCard 
+          <DashboardCard
             to="/internships"
-            title="Internship Matcher" 
+            title="Internship Matcher"
             description="Find the perfect role based on your major, skills, and interests."
             icon={Search}
             colorClass="text-teal-600"
             bgClass="bg-teal-50"
           />
-          <DashboardCard 
+          <DashboardCard
             to="/coach"
-            title="AI Career Coach" 
+            title="AI Career Coach"
             description="Chat with our AI to prep for interviews and plan your career path."
             icon={Bot}
             colorClass="text-purple-600"
@@ -96,29 +157,34 @@ export const Dashboard: React.FC = () => {
           <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <h3 className="font-bold text-lg text-slate-900">Recent Documents</h3>
-              <button className="text-sm text-teal-600 font-semibold hover:text-teal-700 hover:underline transition-colors">View All</button>
+              <Link to="/templates" className="text-sm text-teal-600 font-semibold hover:text-teal-700 hover:underline transition-colors">Create New</Link>
             </div>
             <div className="space-y-4">
-              {[
-                { name: "Software Engineering Resume", date: "Edited 2 hours ago", status: "Draft" },
-                { name: "Product Management Resume", date: "Edited 2 days ago", status: "Exported" },
-                { name: "Cover Letter - Google", date: "Edited 1 week ago", status: "Draft" }
-              ].map((doc, i) => (
-                <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-slate-50 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all cursor-pointer group">
-                  <div className="flex items-center gap-4">
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-slate-400 group-hover:text-teal-600 group-hover:border-teal-200 transition-all">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-slate-900 group-hover:text-teal-700 transition-colors">{doc.name}</div>
-                      <div className="text-sm text-slate-500">{doc.date}</div>
-                    </div>
-                  </div>
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${doc.status === 'Exported' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
-                    {doc.status}
-                  </span>
+              {loadingResumes ? (
+                <div className="text-center py-8 text-slate-400">Loading resumes...</div>
+              ) : resumes.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  <p>No resumes yet.</p>
+                  <Link to="/templates" className="text-teal-600 font-semibold hover:underline mt-2 inline-block">Create your first resume</Link>
                 </div>
-              ))}
+              ) : (
+                resumes.map((resume) => (
+                  <Link key={resume.id} to={`/resume/${resume.id}`} className="flex items-center justify-between p-4 rounded-xl bg-slate-50 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all cursor-pointer group">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-slate-400 group-hover:text-teal-600 group-hover:border-teal-200 transition-all">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-900 group-hover:text-teal-700 transition-colors">{resume.title || 'Untitled Resume'}</div>
+                        <div className="text-sm text-slate-500">Edited {formatDistanceToNow(new Date(resume.updated_at))} ago</div>
+                      </div>
+                    </div>
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-200 text-slate-600">
+                      Draft
+                    </span>
+                  </Link>
+                ))
+              )}
             </div>
           </div>
 
@@ -127,26 +193,28 @@ export const Dashboard: React.FC = () => {
             <div className="relative pt-1">
               <div className="flex mb-2 items-center justify-between">
                 <div>
-                  <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-teal-700 bg-teal-100">
-                    Advanced
+                  <span className={`text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${strengthColor}`}>
+                    {strengthLabel}
                   </span>
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-bold inline-block text-teal-600">
-                    85%
+                    {strength}%
                   </span>
                 </div>
               </div>
               <div className="overflow-hidden h-2.5 mb-4 text-xs flex rounded-full bg-slate-100">
-                <div style={{ width: "85%" }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-teal-500 to-teal-400 rounded-full"></div>
+                <div style={{ width: `${strength}%` }} className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r ${strengthBarColor} rounded-full transition-all duration-500`}></div>
               </div>
             </div>
             <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-              Add 2 more projects and verify your skills to reach <span className="font-semibold text-amber-500">All-Star</span> status.
+              {strength < 100
+                ? "Complete your profile to unlock better internship matches and AI recommendations."
+                : "Great job! Your profile is complete."}
             </p>
-            <button className="w-full py-2.5 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all focus:ring-2 focus:ring-offset-2 focus:ring-slate-200">
-              Complete Profile
-            </button>
+            <Link to="/profile" className="block w-full text-center py-2.5 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all focus:ring-2 focus:ring-offset-2 focus:ring-slate-200">
+              {strength < 100 ? "Complete Profile" : "Edit Profile"}
+            </Link>
           </div>
         </div>
       </main>
