@@ -47,6 +47,9 @@ const FeaturesSection = () => (
 export const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
+      <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white py-2 px-4 text-center text-sm font-medium">
+        🚧 This site is still in development - Some features may not be fully functional yet
+      </div>
       <Navbar />
       <Hero />
       <FeaturesSection />
