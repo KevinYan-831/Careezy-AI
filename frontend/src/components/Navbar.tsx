@@ -2,10 +2,12 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { CareezyLogo } from './CareezyLogo';
 import { Menu, X } from 'lucide-react';
+import { useAuthStore } from '../stores/authStore';
 
 export const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const location = useLocation();
+  const { user } = useAuthStore();
 
   const isActive = (path: string) => location.pathname === path ? 'text-teal-600 font-bold' : 'text-slate-600 hover:text-teal-600 font-medium';
 
@@ -18,18 +20,27 @@ export const Navbar: React.FC = () => {
               <CareezyLogo className="h-12" />
             </Link>
           </div>
-          
+
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
             <Link to="/features" className={`${isActive('/features')} transition-colors`}>Features</Link>
             <Link to="/templates" className={`${isActive('/templates')} transition-colors`}>Templates</Link>
             <Link to="/pricing" className={`${isActive('/pricing')} transition-colors`}>Pricing</Link>
-            <Link 
-              to="/dashboard" 
-              className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-full font-semibold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-            >
-              Login
-            </Link>
+            {user ? (
+              <Link
+                to="/dashboard"
+                className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-full font-semibold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-full font-semibold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+              >
+                Login
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}

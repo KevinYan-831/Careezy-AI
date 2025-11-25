@@ -21,13 +21,11 @@ app.use(cors({
 app.use(express.json());
 
 // Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  limit: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // Limit each IP to 100 requests per `window` (here, per 15 minutes)
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
-app.use(limiter);
+import { errorHandler } from './middleware/error.middleware.js';
+import { rateLimiter } from './middleware/rateLimit.middleware.js';
+
+// Rate limiting
+app.use(rateLimiter);
 
 // Health check route
 app.get('/health', (req, res) => {
@@ -35,18 +33,18 @@ app.get('/health', (req, res) => {
 });
 
 import resumeRoutes from './routes/resume.routes.js';
+import internshipRoutes from './routes/internship.routes.js';
+import coachRoutes from './routes/coach.routes.js';
+import paymentRoutes from './routes/payment.routes.js';
 
 // Routes
 app.use('/api/resumes', resumeRoutes);
-// app.use('/api/internships', internshipRoutes);
-// app.use('/api/coach', coachRoutes);
-// app.use('/api/payment', paymentRoutes);
+app.use('/api/internships', internshipRoutes);
+app.use('/api/coach', coachRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
+app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {

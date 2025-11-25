@@ -1,14 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
-
-// Create a Supabase client with the service key to verify tokens
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { supabase } from '../config/supabase.js';
 
 export interface AuthRequest extends Request {
   user?: any;

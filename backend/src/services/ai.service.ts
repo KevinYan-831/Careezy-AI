@@ -1,24 +1,26 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+// We use the OpenAI SDK because DeepSeek API is compatible with OpenAI's API format
+// We just point it to DeepSeek's base URL
+const openai = new OpenAI({
+  baseURL: 'https://api.deepseek.com',
+  apiKey: process.env.DEEPSEEK_API_KEY,
 });
 
 export class AIService {
   static async generateResumeSuggestions(resumeContent: string) {
     try {
-      const message = await anthropic.messages.create({
-        model: "claude-3-sonnet-20240229",
-        max_tokens: 1024,
+      const completion = await openai.chat.completions.create({
+        model: "deepseek-reasoner",
         messages: [{
           role: "user",
           content: `Analyze this resume content and provide suggestions for improvement: ${resumeContent}`
-        }]
+        }],
       });
-      return message.content;
+      return completion.choices[0]?.message?.content || "No suggestions generated.";
     } catch (error) {
       console.error('AI Service Error:', error);
       throw new Error('Failed to generate suggestions');
@@ -27,18 +29,32 @@ export class AIService {
 
   static async generateMatchReasoning(jobDescription: string, resumeContent: string) {
     try {
-        const message = await anthropic.messages.create({
-            model: "claude-3-sonnet-20240229",
-            max_tokens: 1024,
-            messages: [{
-                role: "user",
-                content: `Analyze the fit between this job description and resume. Provide reasoning. \n\nJob: ${jobDescription}\n\nResume: ${resumeContent}`
-            }]
-        });
-        return message.content;
+      const completion = await openai.chat.completions.create({
+        model: "deepseek-reasoner",
+        messages: [{
+          role: "user",
+          content: `Analyze the fit between this job description and resume. Provide reasoning. \n\nJob: ${jobDescription}\n\nResume: ${resumeContent}`
+        }],
+      });
+      return completion.choices[0]?.message?.content || "No reasoning generated.";
     } catch (error) {
-        console.error('AI Service Error:', error);
-        throw new Error('Failed to generate match reasoning');
+      console.error('AI Service Error:', error);
+      throw new Error('Failed to generate match reasoning');
+    }
+  }
+
+  static async chat(messages: any[]) {
+    try {
+      // Note: deepseek-reasoner may not support system messages
+      // If you get errors, consider using deepseek-chat instead
+      const completion = await openai.chat.completions.create({
+        model: "deepseek-reasoner",
+        messages: messages,
+      });
+      return completion.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
+    } catch (error) {
+      console.error('AI Service Error:', error);
+      throw new Error('Failed to chat');
     }
   }
 }
