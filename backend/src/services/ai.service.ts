@@ -3,6 +3,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// We use the OpenAI SDK because DeepSeek API is compatible with OpenAI's API format
+// We just point it to DeepSeek's base URL
 const openai = new OpenAI({
   baseURL: 'https://api.deepseek.com',
   apiKey: process.env.DEEPSEEK_API_KEY,
@@ -43,6 +45,8 @@ export class AIService {
 
   static async chat(messages: any[]) {
     try {
+      // Note: deepseek-reasoner may not support system messages
+      // If you get errors, consider using deepseek-chat instead
       const completion = await openai.chat.completions.create({
         model: "deepseek-reasoner",
         messages: messages,

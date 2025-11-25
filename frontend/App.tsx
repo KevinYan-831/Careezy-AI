@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './src/stores/authStore';
 import { ProtectedRoute } from './src/components/auth/ProtectedRoute';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { Toaster } from 'react-hot-toast';
 
 // Pages
@@ -30,34 +31,58 @@ function App() {
   }, [initialize]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Toaster position="top-right" />
-        <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/templates" element={<Templates />} />
-          <Route path="/features" element={<Features />} />
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: '#fff',
+                color: '#1e293b',
+                border: '1px solid #e2e8f0',
+              },
+              success: {
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#fff',
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/templates" element={<Templates />} />
+            <Route path="/features" element={<Features />} />
 
-          {/* Protected routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/resume/new" element={<ResumeBuilder />} />
-            <Route path="/resume/:id" element={<ResumeBuilder />} />
-            <Route path="/internships" element={<Internships />} />
-            <Route path="/coach" element={<CareerCoach />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-          </Route>
+            {/* Protected routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/resume/new" element={<ResumeBuilder />} />
+              <Route path="/resume/:id" element={<ResumeBuilder />} />
+              <Route path="/internships" element={<Internships />} />
+              <Route path="/coach" element={<CareerCoach />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+            </Route>
 
-          {/* Catch all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
+            {/* Catch all */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

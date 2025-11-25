@@ -96,14 +96,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     },
 
     updateProfile: async (updates) => {
-        const { user } = get();
+        const { user, profile } = get();
         if (!user) throw new Error('No user logged in');
+
+        // Ensure required fields are included
+        const profileData = {
+            id: user.id,
+            email: user.email || profile?.email || '',
+            full_name: profile?.full_name || user.user_metadata?.full_name || '',
+            ...updates
+        };
 
         const { error } = await supabase
             .from('profiles')
-            .upsert({ id: user.id, ...updates });
+            .upsert(profileData);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Profile update error:', error);
+            throw error;
+        }
 
         // Update local state
         set((state) => ({

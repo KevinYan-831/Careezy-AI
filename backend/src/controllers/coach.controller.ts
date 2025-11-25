@@ -99,10 +99,10 @@ export class CoachController {
                 return;
             }
 
-            // Verify session ownership
+            // Verify session ownership and get context summary
             const { data: session, error: sessionError } = await supabase
                 .from('coaching_sessions')
-                .select('id')
+                .select('id, context_summary, message_count')
                 .eq('id', id)
                 .eq('user_id', userId)
                 .single();
@@ -112,39 +112,94 @@ export class CoachController {
                 return;
             }
 
-            // Save user message
-            await supabase.from('coaching_messages').insert({
-                session_id: id,
-                role: 'user',
-                content: message
-            });
-
-            // Fetch previous messages for context (limit to last 10 for now)
-            const { data: history } = await supabase
+            // Fetch recent messages for context (last 15 messages)
+            const { data: recentMessages } = await supabase
                 .from('coaching_messages')
                 .select('role, content')
                 .eq('session_id', id)
                 .order('created_at', { ascending: true })
-                .limit(10);
+                .limit(15);
 
-            const messages = history ? history.map(msg => ({ role: msg.role, content: msg.content })) : [];
-            // Ensure the latest message is included if not already (it should be because we just inserted it, but race conditions might apply if we don't wait for insert to propagate or if we query before insert completes - wait, we awaited insert)
-            // Actually, we just inserted it. So fetching history SHOULD include it.
+            // Build context: use summary + recent messages
+            const messages: Array<{ role: string; content: string }> = [];
+
+            // Add context summary as system message if it exists
+            if (session.context_summary) {
+                messages.push({
+                    role: 'system',
+                    content: `Previous conversation context: ${session.context_summary}`
+                });
+            }
+
+            // Add recent messages
+            if (recentMessages && recentMessages.length > 0) {
+                messages.push(...recentMessages.map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                })));
+            }
+
+            // Add current user message
+            messages.push({ role: 'user', content: message });
 
             // Get AI response
             const aiResponse = await AIService.chat(messages);
 
-            // Save AI response
-            await supabase.from('coaching_messages').insert({
-                session_id: id,
-                role: 'assistant',
-                content: aiResponse
-            });
+            // Save both messages in a single transaction-like operation
+            await supabase.from('coaching_messages').insert([
+                {
+                    session_id: id,
+                    role: 'user',
+                    content: message
+                },
+                {
+                    session_id: id,
+                    role: 'assistant',
+                    content: aiResponse
+                }
+            ]);
+
+            // Update message count
+            await supabase
+                .from('coaching_sessions')
+                .update({
+                    message_count: (session.message_count || 0) + 2,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', id);
+
+            // Every 20 messages, update the context summary
+            if ((session.message_count || 0) % 20 === 0 && session.id) {
+                await CoachController.updateContextSummary(session.id, messages);
+            }
 
             res.json({ response: aiResponse });
         } catch (error) {
             console.error('Error in coach chat:', error);
             res.status(500).json({ error: 'Failed to get chat response' });
+        }
+    }
+
+    // Helper method to generate and update context summary
+    private static async updateContextSummary(sessionId: string, messages: Array<{ role: string; content: string }>) {
+        try {
+            const summaryPrompt = [
+                {
+                    role: 'system',
+                    content: 'Summarize the key points and context from this career coaching conversation in 2-3 sentences. Focus on the user\'s goals, challenges, and main advice given.'
+                },
+                ...messages
+            ];
+
+            const summary = await AIService.chat(summaryPrompt);
+
+            await supabase
+                .from('coaching_sessions')
+                .update({ context_summary: summary })
+                .eq('id', sessionId);
+        } catch (error) {
+            console.error('Error updating context summary:', error);
+            // Don't throw - this is a non-critical operation
         }
     }
 
@@ -167,62 +222,103 @@ export class CoachController {
             // Check for existing active session or create one
             let { data: sessions } = await supabase
                 .from('coaching_sessions')
-                .select('id')
+                .select('id, context_summary, message_count')
                 .eq('user_id', userId)
                 .eq('is_active', true)
                 .order('created_at', { ascending: false })
                 .limit(1);
 
             let sessionId: string;
+            let contextSummary: string | null = null;
+            let messageCount = 0;
 
-            if (!sessions || sessions.length === 0) {
+            if (!sessions || sessions?.length === 0) {
                 // Create new session
                 const { data: newSession, error: createError } = await supabase
                     .from('coaching_sessions')
                     .insert([{
                         user_id: userId,
                         title: 'Career Coach Chat',
-                        session_type: 'general'
+                        session_type: 'general',
+                        message_count: 0
                     }])
-                    .select('id')
+                    .select('id, context_summary, message_count')
                     .single();
 
                 if (createError || !newSession) {
                     throw new Error('Failed to create session');
                 }
                 sessionId = newSession.id;
+                contextSummary = newSession.context_summary;
+                messageCount = newSession.message_count || 0;
             } else {
-                sessionId = sessions[0].id;
+                sessionId = sessions[0]!.id;
+                contextSummary = sessions[0]!.context_summary;
+                messageCount = sessions[0]!.message_count || 0;
             }
 
-            // Save user message
-            await supabase.from('coaching_messages').insert({
-                session_id: sessionId,
-                role: 'user',
-                content: message
-            });
-
-            // Fetch conversation history for context
-            const { data: history } = await supabase
+            // Fetch recent messages for context (last 15 messages)
+            const { data: recentMessages } = await supabase
                 .from('coaching_messages')
                 .select('role, content')
                 .eq('session_id', sessionId)
                 .order('created_at', { ascending: true })
-                .limit(20);
+                .limit(15);
 
-            const messages = history ? history.map(msg => ({ role: msg.role, content: msg.content })) : [];
+            // Build context: use summary + recent messages
+            const messages: Array<{ role: string; content: string }> = [];
+
+            // Add context summary as system message if it exists
+            if (contextSummary) {
+                messages.push({
+                    role: 'system',
+                    content: `Previous conversation context: ${contextSummary}`
+                });
+            }
+
+            // Add recent messages
+            if (recentMessages && recentMessages.length > 0) {
+                messages.push(...recentMessages.map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                })));
+            }
+
+            // Add current user message
+            messages.push({ role: 'user', content: message });
 
             // Get AI response
             const aiResponse = await AIService.chat(messages);
 
-            // Save AI response
-            await supabase.from('coaching_messages').insert({
-                session_id: sessionId,
-                role: 'assistant',
-                content: aiResponse
-            });
+            // Save both messages
+            await supabase.from('coaching_messages').insert([
+                {
+                    session_id: sessionId,
+                    role: 'user',
+                    content: message
+                },
+                {
+                    session_id: sessionId,
+                    role: 'assistant',
+                    content: aiResponse
+                }
+            ]);
 
-            res.json({ response: aiResponse });
+            // Update message count
+            await supabase
+                .from('coaching_sessions')
+                .update({
+                    message_count: messageCount + 2,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', sessionId);
+
+            // Every 20 messages, update the context summary
+            if (messageCount % 20 === 0 && messageCount > 0) {
+                await CoachController.updateContextSummary(sessionId, messages);
+            }
+
+            res.json({ response: aiResponse, sessionId });
         } catch (error) {
             console.error('Error in coach chat:', error);
             res.status(500).json({ error: 'Failed to get chat response' });

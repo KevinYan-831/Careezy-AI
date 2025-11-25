@@ -20,6 +20,7 @@ interface Internship {
 
 export const Internships: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [location, setLocation] = useState('New York');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 
@@ -35,11 +36,11 @@ export const Internships: React.FC = () => {
   }, [searchTerm]);
 
   const { data: internships, isLoading, error } = useQuery({
-    queryKey: ['internships', debouncedSearch],
+    queryKey: ['internships', debouncedSearch, location],
     queryFn: async () => {
       // Default to "intern" if no search term
       const query = debouncedSearch || 'intern';
-      const results = await api.internships.search(query, 'us'); // Defaulting to US for now
+      const results = await api.internships.search(query, location);
       return results;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -135,15 +136,27 @@ export const Internships: React.FC = () => {
           {/* Main List */}
           <div className="flex-1 space-y-6">
             {/* Search Bar */}
-            <div className="relative group">
-              <Search className="absolute left-4 top-3.5 w-5 h-5 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
-              <input
-                type="text"
-                placeholder="Search by role, company, or keywords..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-lg"
-              />
+            <div className="space-y-3">
+              <div className="relative group">
+                <Search className="absolute left-4 top-3.5 w-5 h-5 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
+                <input
+                  type="text"
+                  placeholder="Search by role, company, or keywords..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-lg"
+                />
+              </div>
+              <div className="relative group">
+                <MapPin className="absolute left-4 top-3.5 w-5 h-5 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
+                <input
+                  type="text"
+                  placeholder="Location (e.g., New York, San Francisco)"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
+                />
+              </div>
             </div>
 
             {/* Job Cards */}

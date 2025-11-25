@@ -18,15 +18,22 @@ export class AdzunaService {
         console.log(`Using App ID: ${ADZUNA_APP_ID.substring(0, 4)}...`);
 
         try {
+            // Clean up location for API (remove spaces if needed or use as-is)
+            const cleanLocation = location.trim() || 'US';
+
             const response = await axios.get(`${BASE_URL}/${country}/search/1`, {
                 params: {
                     app_id: ADZUNA_APP_ID,
                     app_key: ADZUNA_API_KEY,
                     what: query || 'internship',
-                    where: location,
-                    content_type: 'application/json',
-                    results_per_page: 20
+                    where: cleanLocation,
+                    results_per_page: 20,
+                    // Don't include content_type in params, set it in headers instead
                 },
+                headers: {
+                    'Accept': 'application/json'
+                },
+                timeout: 10000 // 10 second timeout
             });
 
             console.log(`Adzuna API Response: Found ${response.data.results?.length} results`);

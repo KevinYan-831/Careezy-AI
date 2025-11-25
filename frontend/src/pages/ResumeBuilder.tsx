@@ -180,36 +180,60 @@ export const ResumeBuilder: React.FC = () => {
             <Sparkles className="w-4 h-4" />
             <span>AI enhanced your summary!</span>
           </div>
-        ));
+        ), { duration: 3000 });
       } else {
         toast.success("AI suggestions received (check console)");
         console.log(suggestions);
       }
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to get AI suggestions');
+    } catch (error: any) {
+      console.error('AI Improve Error:', error);
+
+      let errorMessage = 'Failed to get AI suggestions';
+      if (error.message?.includes('Failed to fetch')) {
+        errorMessage = 'Network error - please check your connection';
+      } else if (error.message?.includes('401')) {
+        errorMessage = 'Session expired - please log in again';
+      } else if (error.message?.includes('500')) {
+        errorMessage = 'Server error - please try again later';
+      }
+
+      toast.error(errorMessage, {
+        duration: 4000,
+        icon: '⚠️',
+      });
     } finally {
       setIsAiLoading(false);
     }
   };
 
   const handleSave = async () => {
+    const loadingToast = toast.loading('Saving resume...');
     try {
       if (currentResumeId) {
         await api.resumes.update(currentResumeId, resumeData);
-        toast.success('Resume updated successfully!');
+        toast.success('Resume updated successfully!', { id: loadingToast, icon: '✅', duration: 3000 });
       } else {
         const response = await api.resumes.create(resumeData);
         if (response && response.resume && response.resume.id) {
           setCurrentResumeId(response.resume.id);
+          toast.success('Resume created successfully!', { id: loadingToast, icon: '✅', duration: 3000 });
           // Optionally navigate to the edit URL to persist state on reload
           // navigate(`/resume/${response.resume.id}`, { replace: true });
         }
-        toast.success('Resume created successfully!');
       }
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to save resume');
+    } catch (error: any) {
+      console.error('Save Resume Error:', error);
+
+      let errorMessage = 'Failed to save resume';
+      if (error.message?.includes('Failed to fetch')) {
+        errorMessage = 'Network error - please check your connection';
+      } else if (error.message?.includes('401')) {
+        errorMessage = 'Session expired - please log in again';
+      } else if (error.message?.includes('500')) {
+        errorMessage = 'Server error - please try again later';
+      }
+
+      toast.error(errorMessage, { id: loadingToast, icon: '⚠️', duration: 4000 });
     }
   };
 
@@ -242,10 +266,20 @@ export const ResumeBuilder: React.FC = () => {
           <button
             onClick={handleAiImprove}
             disabled={isAiLoading}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title={isAiLoading ? 'AI is analyzing your resume...' : 'Use AI to improve your resume'}
           >
-            {isAiLoading ? <Sparkles className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {isAiLoading ? 'Improving...' : 'AI Improve'}
+            {isAiLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-teal-700 border-t-transparent rounded-full animate-spin"></div>
+                <span>Analyzing...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                <span>AI Improve</span>
+              </>
+            )}
           </button>
           <button
             onClick={handleSave}

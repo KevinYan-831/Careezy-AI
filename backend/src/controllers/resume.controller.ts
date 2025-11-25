@@ -8,25 +8,22 @@ export class ResumeController {
   static async create(req: AuthRequest, res: Response) {
     try {
       const { fullName, title, email, phone, location, summary, experience, education, skills } = req.body;
-      const userId = req.user?.id; // Assuming AuthRequest populates user
+      const userId = req.user?.id;
 
       if (!userId) {
-        // For now, if no user, we can't save to DB linked to user. 
-        // But maybe we allow anonymous saves or just return error.
-        // Let's assume auth middleware works.
-        // If not, we might need to handle it.
-        // For now, let's just log it and proceed if we want to allow testing without auth, 
-        // but ideally we need auth.
-        // If the user is not authenticated, we can't save to their profile.
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
+
+      // Generate a title for the resume (required field)
+      const resumeTitle = title || `${fullName}'s Resume` || 'Untitled Resume';
 
       const { data, error } = await supabase
         .from('resumes')
         .insert([
           {
             user_id: userId,
+            title: resumeTitle,
             content: { fullName, title, email, phone, location, summary, experience, education, skills }
           }
         ])
@@ -85,11 +82,12 @@ export class ResumeController {
     try {
       const { id } = req.params;
       const userId = req.user?.id;
-      const updates = req.body;
+      const resumeData = req.body;
 
+      // Wrap the resume data in a content field for storage
       const { data, error } = await supabase
         .from('resumes')
-        .update(updates)
+        .update({ content: resumeData })
         .eq('id', id)
         .eq('user_id', userId)
         .select()
