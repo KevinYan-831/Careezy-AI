@@ -1,0 +1,9 @@
+{
+  "name": "careezy-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Careezy - Career Platform",
+  "scripts": {
+    "build": "bash build.sh"
+  }
+}
