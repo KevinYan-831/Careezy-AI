@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { supabase } from '../config/supabase.js';
+import { getSupabase } from '../config/supabase.js';
 
 export interface AuthRequest extends Request {
   user?: any;
@@ -21,7 +21,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       return;
     }
 
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const { data: { user }, error } = await getSupabase().auth.getUser(token);
 
     if (error || !user) {
       // Return 401 if the token is invalid or user is not found

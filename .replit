@@ -37,7 +37,12 @@ externalPort = 3000
 localPort = 5000
 externalPort = 80
 
+[[ports]]
+localPort = 43267
+externalPort = 3001
+
 [deployment]
-deploymentTarget = "static"
+deploymentTarget = "autoscale"
 build = ["bash", "build.sh"]
 publicDir = "frontend/dist"
+run = ["node", "backend/dist/server.js"]

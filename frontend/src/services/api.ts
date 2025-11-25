@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { getSupabaseClient } from '../lib/supabase';
 
 const API_URL = 'http://localhost:3001/api';
 
@@ -16,7 +16,7 @@ interface ResumeData {
 
 // Helper function to get auth headers
 async function getAuthHeaders(): Promise<HeadersInit> {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await getSupabaseClient().auth.getSession();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     };

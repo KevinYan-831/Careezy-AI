@@ -3,12 +3,20 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { rateLimit } from 'express-rate-limit';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Load environment variables
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 5000;
+
+// Trust proxy for Replit/reverse proxy environments
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet());
@@ -42,6 +50,18 @@ app.use('/api/resumes', resumeRoutes);
 app.use('/api/internships', internshipRoutes);
 app.use('/api/coach', coachRoutes);
 app.use('/api/payments', paymentRoutes);
+
+// Serve static frontend files in production
+const frontendPath = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(frontendPath));
+
+// Handle SPA routing - serve index.html for non-API routes
+app.get('/{*path}', (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
 
 // Error handling middleware
 app.use(errorHandler);

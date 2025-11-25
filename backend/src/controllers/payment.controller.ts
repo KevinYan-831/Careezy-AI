@@ -5,9 +5,19 @@ import type { AuthRequest } from '../middleware/auth.middleware.js';
 
 dotenv.config();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2024-12-18.acacia' as any // Cast to any to avoid type mismatch if SDK types are older/newer
-});
+let stripeClient: Stripe | null = null;
+
+function getStripe(): Stripe {
+    if (!stripeClient) {
+        if (!process.env.STRIPE_SECRET_KEY) {
+            throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+        }
+        stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
+            apiVersion: '2024-12-18.acacia' as any
+        });
+    }
+    return stripeClient;
+}
 
 export class PaymentController {
     static async createCheckoutSession(req: AuthRequest, res: Response) {
@@ -20,7 +30,7 @@ export class PaymentController {
                 return;
             }
 
-            const session = await stripe.checkout.sessions.create({
+            const session = await getStripe().checkout.sessions.create({
                 mode: 'subscription',
                 payment_method_types: ['card'],
                 line_items: [

@@ -3,17 +3,27 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// We use the OpenAI SDK because DeepSeek API is compatible with OpenAI's API format
-// We just point it to DeepSeek's base URL
-const openai = new OpenAI({
-  baseURL: 'https://api.deepseek.com',
-  apiKey: process.env.DEEPSEEK_API_KEY,
-});
+// Lazy initialization of OpenAI client to allow server to start without API key
+let openaiClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openaiClient) {
+    if (!process.env.DEEPSEEK_API_KEY) {
+      throw new Error('DEEPSEEK_API_KEY environment variable is not set');
+    }
+    openaiClient = new OpenAI({
+      baseURL: 'https://api.deepseek.com',
+      apiKey: process.env.DEEPSEEK_API_KEY,
+    });
+  }
+  return openaiClient;
+}
 
 export class AIService {
   static async generateResumeSuggestions(resumeContent: string) {
     try {
-      const completion = await openai.chat.completions.create({
+      const client = getOpenAIClient();
+      const completion = await client.chat.completions.create({
         model: "deepseek-reasoner",
         messages: [{
           role: "user",
@@ -29,7 +39,8 @@ export class AIService {
 
   static async generateMatchReasoning(jobDescription: string, resumeContent: string) {
     try {
-      const completion = await openai.chat.completions.create({
+      const client = getOpenAIClient();
+      const completion = await client.chat.completions.create({
         model: "deepseek-reasoner",
         messages: [{
           role: "user",
@@ -45,9 +56,8 @@ export class AIService {
 
   static async chat(messages: any[]) {
     try {
-      // Note: deepseek-reasoner may not support system messages
-      // If you get errors, consider using deepseek-chat instead
-      const completion = await openai.chat.completions.create({
+      const client = getOpenAIClient();
+      const completion = await client.chat.completions.create({
         model: "deepseek-reasoner",
         messages: messages,
       });

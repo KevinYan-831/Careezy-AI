@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { AIService } from '../services/ai.service.js';
 import type { AuthRequest } from '../middleware/auth.middleware.js';
 
-import { supabase } from '../config/supabase.js';
+import { getSupabase } from '../config/supabase.js';
 
 export class ResumeController {
   static async create(req: AuthRequest, res: Response) {
@@ -18,7 +18,7 @@ export class ResumeController {
       // Generate a title for the resume (required field)
       const resumeTitle = title || `${fullName}'s Resume` || 'Untitled Resume';
 
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('resumes')
         .insert([
           {
@@ -40,7 +40,7 @@ export class ResumeController {
 
   static async getTemplates(req: AuthRequest, res: Response) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('resume_templates')
         .select('*')
         .eq('is_active', true);
@@ -58,7 +58,7 @@ export class ResumeController {
       const { id } = req.params;
       const userId = req.user?.id;
 
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('resumes')
         .select('*')
         .eq('id', id)
@@ -85,7 +85,7 @@ export class ResumeController {
       const resumeData = req.body;
 
       // Wrap the resume data in a content field for storage
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('resumes')
         .update({ content: resumeData })
         .eq('id', id)
@@ -106,7 +106,7 @@ export class ResumeController {
       const { id } = req.params;
       const userId = req.user?.id;
 
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('resumes')
         .delete()
         .eq('id', id)

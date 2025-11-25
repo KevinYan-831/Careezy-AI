@@ -3,7 +3,7 @@ import { CareezyLogo } from '../components/CareezyLogo';
 import { FileText, Search, Bot, ArrowRight, Bell, User, Settings, LogOut, Plus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { supabase } from '../lib/supabase';
+import { getSupabaseClient } from '../lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 
 const DashboardCard = ({ title, description, icon: Icon, colorClass, bgClass, to }: any) => (
@@ -52,7 +52,7 @@ export const Dashboard: React.FC = () => {
     const fetchResumes = async () => {
       if (!user) return;
       try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabaseClient()
           .from('resumes')
           .select('*')
           .eq('user_id', user.id)

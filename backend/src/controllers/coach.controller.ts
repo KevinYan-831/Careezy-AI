@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 import { AIService } from '../services/ai.service.js';
-import { supabase } from '../config/supabase.js';
+import { getSupabase } from '../config/supabase.js';
 import type { AuthRequest } from '../middleware/auth.middleware.js';
 
 export class CoachController {
@@ -14,7 +14,7 @@ export class CoachController {
                 return;
             }
 
-            const { data, error } = await supabase
+            const { data, error } = await getSupabase()
                 .from('coaching_sessions')
                 .insert([{ user_id: userId, title, session_type }])
                 .select()
@@ -31,7 +31,7 @@ export class CoachController {
     static async getSessions(req: AuthRequest, res: Response) {
         try {
             const userId = req.user?.id;
-            const { data, error } = await supabase
+            const { data, error } = await getSupabase()
                 .from('coaching_sessions')
                 .select('*')
                 .eq('user_id', userId)
@@ -50,7 +50,7 @@ export class CoachController {
             const { id } = req.params;
             const userId = req.user?.id;
 
-            const { data, error } = await supabase
+            const { data, error } = await getSupabase()
                 .from('coaching_sessions')
                 .select('*, messages:coaching_messages(*)')
                 .eq('id', id)
@@ -74,7 +74,7 @@ export class CoachController {
             const { id } = req.params;
             const userId = req.user?.id;
 
-            const { error } = await supabase
+            const { error } = await getSupabase()
                 .from('coaching_sessions')
                 .update({ is_active: false })
                 .eq('id', id)
@@ -100,7 +100,7 @@ export class CoachController {
             }
 
             // Verify session ownership and get context summary
-            const { data: session, error: sessionError } = await supabase
+            const { data: session, error: sessionError } = await getSupabase()
                 .from('coaching_sessions')
                 .select('id, context_summary, message_count')
                 .eq('id', id)
@@ -113,7 +113,7 @@ export class CoachController {
             }
 
             // Fetch recent messages for context (last 15 messages)
-            const { data: recentMessages } = await supabase
+            const { data: recentMessages } = await getSupabase()
                 .from('coaching_messages')
                 .select('role, content')
                 .eq('session_id', id)
@@ -146,7 +146,7 @@ export class CoachController {
             const aiResponse = await AIService.chat(messages);
 
             // Save both messages in a single transaction-like operation
-            await supabase.from('coaching_messages').insert([
+            await getSupabase().from('coaching_messages').insert([
                 {
                     session_id: id,
                     role: 'user',
@@ -160,7 +160,7 @@ export class CoachController {
             ]);
 
             // Update message count
-            await supabase
+            await getSupabase()
                 .from('coaching_sessions')
                 .update({
                     message_count: (session.message_count || 0) + 2,
@@ -193,7 +193,7 @@ export class CoachController {
 
             const summary = await AIService.chat(summaryPrompt);
 
-            await supabase
+            await getSupabase()
                 .from('coaching_sessions')
                 .update({ context_summary: summary })
                 .eq('id', sessionId);
@@ -220,7 +220,7 @@ export class CoachController {
             }
 
             // Check for existing active session or create one
-            let { data: sessions } = await supabase
+            let { data: sessions } = await getSupabase()
                 .from('coaching_sessions')
                 .select('id, context_summary, message_count')
                 .eq('user_id', userId)
@@ -234,7 +234,7 @@ export class CoachController {
 
             if (!sessions || sessions?.length === 0) {
                 // Create new session
-                const { data: newSession, error: createError } = await supabase
+                const { data: newSession, error: createError } = await getSupabase()
                     .from('coaching_sessions')
                     .insert([{
                         user_id: userId,
@@ -258,7 +258,7 @@ export class CoachController {
             }
 
             // Fetch recent messages for context (last 15 messages)
-            const { data: recentMessages } = await supabase
+            const { data: recentMessages } = await getSupabase()
                 .from('coaching_messages')
                 .select('role, content')
                 .eq('session_id', sessionId)
@@ -291,7 +291,7 @@ export class CoachController {
             const aiResponse = await AIService.chat(messages);
 
             // Save both messages
-            await supabase.from('coaching_messages').insert([
+            await getSupabase().from('coaching_messages').insert([
                 {
                     session_id: sessionId,
                     role: 'user',
@@ -305,7 +305,7 @@ export class CoachController {
             ]);
 
             // Update message count
-            await supabase
+            await getSupabase()
                 .from('coaching_sessions')
                 .update({
                     message_count: messageCount + 2,

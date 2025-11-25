@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
+import { getSupabaseClient } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
 interface Profile {
@@ -33,12 +33,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     initialize: async () => {
         try {
             // Get initial session
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await getSupabaseClient().auth.getSession();
             const user = session?.user ?? null;
 
             let profile = null;
             if (user) {
-                const { data } = await supabase
+                const { data } = await getSupabaseClient()
                     .from('profiles')
                     .select('*')
                     .eq('id', user.id)
@@ -49,11 +49,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             set({ user, profile, loading: false });
 
             // Listen for auth changes
-            supabase.auth.onAuthStateChange(async (_event, session) => {
+            getSupabaseClient().auth.onAuthStateChange(async (_event, session) => {
                 const user = session?.user ?? null;
                 let profile = null;
                 if (user) {
-                    const { data } = await supabase
+                    const { data } = await getSupabaseClient()
                         .from('profiles')
                         .select('*')
                         .eq('id', user.id)
@@ -69,7 +69,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     },
 
     signIn: async (email, password) => {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error } = await getSupabaseClient().auth.signInWithPassword({
             email,
             password,
         });
@@ -77,7 +77,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     },
 
     signUp: async (email, password, fullName) => {
-        const { error } = await supabase.auth.signUp({
+        const { error } = await getSupabaseClient().auth.signUp({
             email,
             password,
             options: {
@@ -90,7 +90,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     },
 
     signOut: async () => {
-        const { error } = await supabase.auth.signOut();
+        const { error } = await getSupabaseClient().auth.signOut();
         if (error) throw error;
         set({ user: null, profile: null });
     },
@@ -107,7 +107,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             ...updates
         };
 
-        const { error } = await supabase
+        const { error } = await getSupabaseClient()
             .from('profiles')
             .upsert(profileData);
 
