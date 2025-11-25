@@ -1,28 +1,58 @@
-
 import React from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import { Home } from './pages/Home';
-import { Dashboard } from './pages/Dashboard';
-import { ResumeBuilder } from './pages/ResumeBuilder';
-import { Internships } from './pages/Internships';
-import { CareerCoach } from './pages/CareerCoach';
-import { Features } from './pages/Features';
-import { Templates } from './pages/Templates';
-import { Pricing } from './pages/Pricing';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useAuthStore } from './src/stores/authStore';
+import { ProtectedRoute } from './src/components/auth/ProtectedRoute';
+import { Toaster } from 'react-hot-toast';
 
-export default function App() {
+// Pages
+import { Home } from './src/pages/Home';
+import { Login } from './src/pages/Login';
+import { Signup } from './src/pages/Signup';
+import { Dashboard } from './src/pages/Dashboard';
+import { ResumeBuilder } from './src/pages/ResumeBuilder';
+import { Internships } from './src/pages/Internships';
+import { CareerCoach } from './src/pages/CareerCoach';
+import { Pricing } from './src/pages/Pricing';
+import { Profile } from './src/pages/Profile';
+
+const queryClient = new QueryClient();
+
+function App() {
+  const { initialize } = useAuthStore();
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/features" element={<Features />} />
-        <Route path="/templates" element={<Templates />} />
-        <Route path="/pricing" element={<Pricing />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/resume" element={<ResumeBuilder />} />
-        <Route path="/internships" element={<Internships />} />
-        <Route path="/coach" element={<CareerCoach />} />
-      </Routes>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Toaster position="top-right" />
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/pricing" element={<Pricing />} />
+
+          {/* Protected routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/resume/new" element={<ResumeBuilder />} />
+            <Route path="/resume/:id" element={<ResumeBuilder />} />
+            <Route path="/internships" element={<Internships />} />
+            <Route path="/coach" element={<CareerCoach />} />
+            <Route path="/profile" element={<Profile />} />
+          </Route>
+
+          {/* Catch all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
+
+export default App;

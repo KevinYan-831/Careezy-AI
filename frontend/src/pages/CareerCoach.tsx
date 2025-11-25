@@ -2,6 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Send, Bot, User, Sparkles, ThumbsUp, ThumbsDown, MoreHorizontal, Lightbulb } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { api } from '../services/api';
+import toast from 'react-hot-toast';
 
 interface Message {
   id: number;
@@ -38,7 +40,7 @@ export const CareerCoach: React.FC = () => {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const handleSend = (text: string) => {
+  const handleSend = async (text: string) => {
     if (!text.trim()) return;
 
     // User message
@@ -53,25 +55,9 @@ export const CareerCoach: React.FC = () => {
     setInput('');
     setIsTyping(true);
 
-    // Mock AI Response logic
-    setTimeout(() => {
-      let response = "";
-      const lowerText = text.toLowerCase();
-
-      if (lowerText.includes("interview")) {
-        response = "For behavioral interviews, use the STAR method (Situation, Task, Action, Result). Would you like me to give you a practice question to try this out?";
-      } else if (lowerText.includes("resume")) {
-        response = "I'd love to help with your resume. A strong summary should be 2-3 sentences highlighting your top skills and what you're looking for. Paste your current summary here and I'll refine it!";
-      } else if (lowerText.includes("salary")) {
-        response = "Negotiating salary as an intern is possible but requires research. Look up standard rates for your role in your city. Always express enthusiasm for the role before discussing numbers.";
-      } else {
-        const botResponses = [
-          "That's a great question! Based on your profile, I'd suggest focusing on showcasing your problem-solving skills.",
-          "I can definitely help with that. Could you tell me a bit more about your specific goals?",
-          "Interesting point. In the current market, employers really value adaptability and continuous learning.",
-        ];
-        response = botResponses[Math.floor(Math.random() * botResponses.length)];
-      }
+    // AI Response logic
+    try {
+      const { response } = await api.coach.chat(text);
 
       const botMsg: Message = {
         id: Date.now() + 1,
@@ -81,13 +67,25 @@ export const CareerCoach: React.FC = () => {
       };
 
       setMessages(prev => [...prev, botMsg]);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to get response from Coach');
+      // Fallback message
+      const botMsg: Message = {
+        id: Date.now() + 1,
+        text: "I'm having trouble connecting to the server right now. Please try again later.",
+        sender: 'bot',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, botMsg]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    handleSend(input);
+    await handleSend(input);
   };
 
   return (
@@ -99,14 +97,14 @@ export const CareerCoach: React.FC = () => {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center border border-purple-200 relative">
-               <Bot className="w-6 h-6 text-purple-600" />
-               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
-             </div>
-             <div>
-               <h1 className="font-bold text-slate-900 leading-tight">Career Coach AI</h1>
-               <div className="text-xs text-slate-500 font-medium">Always here to help</div>
-             </div>
+            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center border border-purple-200 relative">
+              <Bot className="w-6 h-6 text-purple-600" />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
+            </div>
+            <div>
+              <h1 className="font-bold text-slate-900 leading-tight">Career Coach AI</h1>
+              <div className="text-xs text-slate-500 font-medium">Always here to help</div>
+            </div>
           </div>
         </div>
         <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-full">
@@ -125,25 +123,24 @@ export const CareerCoach: React.FC = () => {
           </div>
 
           {messages.map((msg) => (
-            <div 
-              key={msg.id} 
+            <div
+              key={msg.id}
               className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in-up`}
             >
               <div className={`flex items-end gap-2 max-w-[85%] sm:max-w-[75%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                
+
                 {/* Avatar */}
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${msg.sender === 'user' ? 'bg-teal-100 text-teal-700' : 'bg-purple-100 text-purple-700'}`}>
                   {msg.sender === 'user' ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
                 </div>
 
                 {/* Bubble */}
-                <div className={`p-4 rounded-2xl shadow-sm relative group ${
-                  msg.sender === 'user' 
-                    ? 'bg-teal-600 text-white rounded-br-none' 
-                    : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
-                }`}>
+                <div className={`p-4 rounded-2xl shadow-sm relative group ${msg.sender === 'user'
+                  ? 'bg-teal-600 text-white rounded-br-none'
+                  : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
+                  }`}>
                   <p className="leading-relaxed text-sm sm:text-base whitespace-pre-wrap">{msg.text}</p>
-                  
+
                   {/* Bot Actions */}
                   {msg.sender === 'bot' && (
                     <div className="absolute -bottom-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 pt-2">
@@ -164,20 +161,20 @@ export const CareerCoach: React.FC = () => {
           ))}
 
           {isTyping && (
-             <div className="flex justify-start animate-fade-in">
-                <div className="flex items-end gap-2">
-                   <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 shadow-sm">
-                      <Bot className="w-4 h-4" />
-                   </div>
-                   <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-bl-none shadow-sm">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-100"></div>
-                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-200"></div>
-                      </div>
-                   </div>
+            <div className="flex justify-start animate-fade-in">
+              <div className="flex items-end gap-2">
+                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 shadow-sm">
+                  <Bot className="w-4 h-4" />
                 </div>
-             </div>
+                <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-bl-none shadow-sm">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-100"></div>
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-200"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
           <div ref={messagesEndRef} />
         </div>
@@ -202,14 +199,14 @@ export const CareerCoach: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} className="relative flex items-center gap-2">
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about interview tips, resume help..." 
+              placeholder="Ask about interview tips, resume help..."
               className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all shadow-inner"
             />
-            <button 
+            <button
               type="submit"
               disabled={!input.trim()}
               className="absolute right-2 p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:hover:bg-purple-600 transition-all active:scale-95"

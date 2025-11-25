@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Download, Sparkles, Plus, Trash2, Save, Briefcase, GraduationCap, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
+import { api } from '../services/api';
 
 // Types for our resume data
 interface Experience {
@@ -24,7 +25,7 @@ interface Education {
 export const ResumeBuilder: React.FC = () => {
   const [activeSection, setActiveSection] = useState('personal');
   const [isAiLoading, setIsAiLoading] = useState(false);
-  
+
   const [resumeData, setResumeData] = useState({
     fullName: 'Alex Student',
     title: 'Aspiring Software Engineer',
@@ -59,7 +60,7 @@ export const ResumeBuilder: React.FC = () => {
   };
 
   const updateExperience = (id: number, field: keyof Experience, value: string) => {
-    const updatedExp = resumeData.experience.map(exp => 
+    const updatedExp = resumeData.experience.map(exp =>
       exp.id === id ? { ...exp, [field]: value } : exp
     );
     setResumeData({ ...resumeData, experience: updatedExp });
@@ -84,7 +85,7 @@ export const ResumeBuilder: React.FC = () => {
   };
 
   const updateEducation = (id: number, field: keyof Education, value: string) => {
-    const updatedEdu = resumeData.education.map(edu => 
+    const updatedEdu = resumeData.education.map(edu =>
       edu.id === id ? { ...edu, [field]: value } : edu
     );
     setResumeData({ ...resumeData, education: updatedEdu });
@@ -101,21 +102,58 @@ export const ResumeBuilder: React.FC = () => {
   };
 
   // AI Features
-  const handleAiImprove = () => {
+  const handleAiImprove = async () => {
     setIsAiLoading(true);
-    setTimeout(() => {
-      setResumeData(prev => ({
-        ...prev,
-        summary: "Highly motivated Computer Science undergraduate with proven expertise in React, TypeScript, and modern web frameworks. Demonstrated ability to deliver scalable frontend solutions, evidenced by a 20% performance boost in previous internship. Seeking to leverage technical skills and problem-solving abilities in a challenging Software Engineering role."
-      }));
+    try {
+      // Construct a string representation of the resume for the AI
+      const resumeContent = `
+        Name: ${resumeData.fullName}
+        Title: ${resumeData.title}
+        Summary: ${resumeData.summary}
+        Experience: ${resumeData.experience.map(e => `${e.role} at ${e.company}: ${e.description}`).join('\n')}
+        Education: ${resumeData.education.map(e => `${e.degree} at ${e.school}: ${e.description}`).join('\n')}
+        Skills: ${resumeData.skills.join(', ')}
+      `;
+
+      const { suggestions } = await api.resumes.getSuggestions(resumeContent);
+
+      // For now, let's just update the summary with the suggestion if it's a string, 
+      // or handle structured suggestions. Assuming the AI returns a text suggestion for the summary.
+      // In a real app, we might want to show a modal with suggestions.
+      // Here we'll assume the backend returns a refined summary.
+
+      if (typeof suggestions === 'string') {
+        setResumeData(prev => ({
+          ...prev,
+          summary: suggestions
+        }));
+        toast.custom((t) => (
+          <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} bg-teal-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2`}>
+            <Sparkles className="w-4 h-4" />
+            <span>AI enhanced your summary!</span>
+          </div>
+        ));
+      } else {
+        toast.success("AI suggestions received (check console)");
+        console.log(suggestions);
+      }
+
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to get AI suggestions');
+    } finally {
       setIsAiLoading(false);
-      toast.custom((t) => (
-        <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} bg-teal-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2`}>
-          <Sparkles className="w-4 h-4" />
-          <span>AI enhanced your summary!</span>
-        </div>
-      ));
-    }, 1500);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      await api.resumes.create(resumeData);
+      toast.success('Resume saved successfully!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to save resume');
+    }
   };
 
   const handleExport = () => {
@@ -125,7 +163,7 @@ export const ResumeBuilder: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col h-screen overflow-hidden">
       <Toaster position="bottom-center" />
-      
+
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center z-20 shadow-sm print:hidden">
         <div className="flex items-center gap-4">
@@ -135,16 +173,16 @@ export const ResumeBuilder: React.FC = () => {
           <div className="h-6 w-px bg-slate-200 mx-2"></div>
           <div className="flex items-center gap-2">
             <Briefcase className="w-5 h-5 text-blue-600" />
-            <input 
-              type="text" 
-              defaultValue="Software Engineering Resume" 
+            <input
+              type="text"
+              defaultValue="Software Engineering Resume"
               className="font-semibold text-slate-700 bg-transparent border-none focus:ring-0 hover:bg-slate-50 px-2 py-1 rounded cursor-pointer"
             />
           </div>
           <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-md font-medium">Draft</span>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={handleAiImprove}
             disabled={isAiLoading}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors disabled:opacity-50"
@@ -152,7 +190,14 @@ export const ResumeBuilder: React.FC = () => {
             {isAiLoading ? <Sparkles className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {isAiLoading ? 'Improving...' : 'AI Improve'}
           </button>
-          <button 
+          <button
+            onClick={handleSave}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors"
+          >
+            <Save className="w-4 h-4" />
+            Save
+          </button>
+          <button
             onClick={handleExport}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-sm"
           >
@@ -171,11 +216,10 @@ export const ResumeBuilder: React.FC = () => {
               <button
                 key={tab}
                 onClick={() => setActiveSection(tab)}
-                className={`px-6 py-4 text-sm font-medium capitalize border-b-2 transition-colors whitespace-nowrap ${
-                  activeSection === tab 
-                    ? 'border-teal-600 text-teal-600 bg-teal-50/50' 
+                className={`px-6 py-4 text-sm font-medium capitalize border-b-2 transition-colors whitespace-nowrap ${activeSection === tab
+                    ? 'border-teal-600 text-teal-600 bg-teal-50/50'
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 {tab}
               </button>
@@ -191,8 +235,8 @@ export const ResumeBuilder: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-slate-500 uppercase">Full Name</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={resumeData.fullName}
                         onChange={(e) => handleInputChange(e, 'fullName')}
                         className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
@@ -200,8 +244,8 @@ export const ResumeBuilder: React.FC = () => {
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-slate-500 uppercase">Job Title</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={resumeData.title}
                         onChange={(e) => handleInputChange(e, 'title')}
                         className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
@@ -211,8 +255,8 @@ export const ResumeBuilder: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-slate-500 uppercase">Email</label>
-                      <input 
-                        type="email" 
+                      <input
+                        type="email"
                         value={resumeData.email}
                         onChange={(e) => handleInputChange(e, 'email')}
                         className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
@@ -220,8 +264,8 @@ export const ResumeBuilder: React.FC = () => {
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-slate-500 uppercase">Phone</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={resumeData.phone}
                         onChange={(e) => handleInputChange(e, 'phone')}
                         className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
@@ -230,8 +274,8 @@ export const ResumeBuilder: React.FC = () => {
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-500 uppercase">Location</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={resumeData.location}
                       onChange={(e) => handleInputChange(e, 'location')}
                       className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
@@ -239,7 +283,7 @@ export const ResumeBuilder: React.FC = () => {
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-500 uppercase">Professional Summary</label>
-                    <textarea 
+                    <textarea
                       rows={4}
                       value={resumeData.summary}
                       onChange={(e) => handleInputChange(e, 'summary')}
@@ -257,19 +301,19 @@ export const ResumeBuilder: React.FC = () => {
 
               {activeSection === 'experience' && (
                 <div className="space-y-6 animate-fade-in">
-                   <div className="flex justify-between items-center mb-2">
+                  <div className="flex justify-between items-center mb-2">
                     <h2 className="text-lg font-bold text-slate-900">Work Experience</h2>
-                    <button 
+                    <button
                       onClick={addExperience}
                       className="text-sm font-medium text-teal-600 hover:bg-teal-50 px-3 py-1.5 rounded-md flex items-center gap-1 transition-colors"
                     >
                       <Plus className="w-4 h-4" /> Add Position
                     </button>
                   </div>
-                  
+
                   {resumeData.experience.map((exp) => (
                     <div key={exp.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative group">
-                      <button 
+                      <button
                         onClick={() => removeExperience(exp.id)}
                         className="absolute top-4 right-4 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-red-50 rounded"
                       >
@@ -278,15 +322,15 @@ export const ResumeBuilder: React.FC = () => {
                       <div className="grid grid-cols-2 gap-4 mb-3">
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase">Role</label>
-                          <input 
+                          <input
                             value={exp.role}
                             onChange={(e) => updateExperience(exp.id, 'role', e.target.value)}
                             className="w-full font-semibold bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                           />
                         </div>
                         <div className="space-y-1">
-                           <label className="text-[10px] font-bold text-slate-400 uppercase">Company</label>
-                           <input 
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">Company</label>
+                          <input
                             value={exp.company}
                             onChange={(e) => updateExperience(exp.id, 'company', e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
@@ -295,7 +339,7 @@ export const ResumeBuilder: React.FC = () => {
                       </div>
                       <div className="space-y-1 mb-3">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Date Range</label>
-                        <input 
+                        <input
                           value={exp.date}
                           onChange={(e) => updateExperience(exp.id, 'date', e.target.value)}
                           className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
@@ -303,7 +347,7 @@ export const ResumeBuilder: React.FC = () => {
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Description</label>
-                        <textarea 
+                        <textarea
                           value={exp.description}
                           onChange={(e) => updateExperience(exp.id, 'description', e.target.value)}
                           rows={3}
@@ -321,63 +365,63 @@ export const ResumeBuilder: React.FC = () => {
               )}
 
               {activeSection === 'education' && (
-                 <div className="space-y-6 animate-fade-in">
-                 <div className="flex justify-between items-center mb-2">
-                  <h2 className="text-lg font-bold text-slate-900">Education</h2>
-                  <button 
-                    onClick={addEducation}
-                    className="text-sm font-medium text-teal-600 hover:bg-teal-50 px-3 py-1.5 rounded-md flex items-center gap-1 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" /> Add Education
-                  </button>
-                </div>
-                
-                {resumeData.education.map((edu) => (
-                  <div key={edu.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative group">
-                    <button 
-                      onClick={() => removeEducation(edu.id)}
-                      className="absolute top-4 right-4 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-red-50 rounded"
+                <div className="space-y-6 animate-fade-in">
+                  <div className="flex justify-between items-center mb-2">
+                    <h2 className="text-lg font-bold text-slate-900">Education</h2>
+                    <button
+                      onClick={addEducation}
+                      className="text-sm font-medium text-teal-600 hover:bg-teal-50 px-3 py-1.5 rounded-md flex items-center gap-1 transition-colors"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Plus className="w-4 h-4" /> Add Education
                     </button>
-                    <div className="grid grid-cols-2 gap-4 mb-3">
-                      <div className="space-y-1">
-                         <label className="text-[10px] font-bold text-slate-400 uppercase">Degree</label>
-                         <input 
-                          value={edu.degree}
-                          onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)}
-                          className="w-full font-semibold bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
-                        />
+                  </div>
+
+                  {resumeData.education.map((edu) => (
+                    <div key={edu.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative group">
+                      <button
+                        onClick={() => removeEducation(edu.id)}
+                        className="absolute top-4 right-4 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-red-50 rounded"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">Degree</label>
+                          <input
+                            value={edu.degree}
+                            onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)}
+                            className="w-full font-semibold bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">School</label>
+                          <input
+                            value={edu.school}
+                            onChange={(e) => updateEducation(edu.id, 'school', e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                         <label className="text-[10px] font-bold text-slate-400 uppercase">School</label>
-                         <input 
-                          value={edu.school}
-                          onChange={(e) => updateEducation(edu.id, 'school', e.target.value)}
+                      <div className="space-y-1 mb-3">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Date Range</label>
+                        <input
+                          value={edu.date}
+                          onChange={(e) => updateEducation(edu.id, 'date', e.target.value)}
                           className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                         />
                       </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Details (GPA, Honors)</label>
+                        <textarea
+                          value={edu.description}
+                          onChange={(e) => updateEducation(edu.id, 'description', e.target.value)}
+                          rows={2}
+                          className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none resize-none"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-1 mb-3">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Date Range</label>
-                      <input 
-                        value={edu.date}
-                        onChange={(e) => updateEducation(edu.id, 'date', e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Details (GPA, Honors)</label>
-                      <textarea 
-                        value={edu.description}
-                        onChange={(e) => updateEducation(edu.id, 'description', e.target.value)}
-                        rows={2}
-                        className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none resize-none"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
               )}
 
               {activeSection === 'skills' && (
@@ -385,7 +429,7 @@ export const ResumeBuilder: React.FC = () => {
                   <h2 className="text-lg font-bold text-slate-900 mb-4">Skills</h2>
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-slate-500 uppercase">Skills (Comma separated)</label>
-                    <textarea 
+                    <textarea
                       rows={4}
                       value={resumeData.skills.join(', ')}
                       onChange={(e) => updateSkills(e.target.value)}
@@ -481,11 +525,11 @@ export const ResumeBuilder: React.FC = () => {
                     <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Skills</h3>
                     <div className="flex flex-wrap gap-2">
                       {resumeData.skills.map((skill, i) => (
-                         skill.trim() && (
+                        skill.trim() && (
                           <span key={i} className="text-xs font-medium bg-slate-100 text-slate-700 px-2 py-1 rounded print:border print:border-slate-200">
                             {skill}
                           </span>
-                         )
+                        )
                       ))}
                     </div>
                   </section>
