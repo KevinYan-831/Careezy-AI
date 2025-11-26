@@ -59,7 +59,20 @@ export const ResumeBuilder: React.FC = () => {
           const data = await api.resumes.get(id);
           // Assuming data.content holds the resume fields
           if (data && data.content) {
-            setResumeData(data.content);
+            // Ensure all required fields exist with proper defaults
+            const content = data.content;
+            setResumeData({
+              fullName: content.fullName || '',
+              title: content.title || '',
+              email: content.email || '',
+              phone: content.phone || '',
+              location: content.location || '',
+              summary: content.summary || '',
+              experience: Array.isArray(content.experience) ? content.experience : [],
+              education: Array.isArray(content.education) ? content.education : [],
+              projects: Array.isArray(content.projects) ? content.projects : [],
+              skills: Array.isArray(content.skills) ? content.skills : []
+            });
           }
         } catch (error) {
           console.error('Error fetching resume:', error);
@@ -158,14 +171,19 @@ export const ResumeBuilder: React.FC = () => {
   const handleAiImprove = async () => {
     setIsAiLoading(true);
     try {
+      const experience = resumeData.experience || [];
+      const education = resumeData.education || [];
+      const projects = resumeData.projects || [];
+      const skills = resumeData.skills || [];
+      
       const resumeContent = `
-        Name: ${resumeData.fullName}
-        Title: ${resumeData.title}
-        Summary: ${resumeData.summary}
-        Experience: ${resumeData.experience.map(e => `${e.role} at ${e.company}: ${e.description}`).join('\n')}
-        Education: ${resumeData.education.map(e => `${e.degree} at ${e.school}: ${e.description}`).join('\n')}
-        Projects: ${resumeData.projects.map(p => `${p.name} (${p.technologies}): ${p.description}`).join('\n')}
-        Skills: ${resumeData.skills.join(', ')}
+        Name: ${resumeData.fullName || ''}
+        Title: ${resumeData.title || ''}
+        Summary: ${resumeData.summary || ''}
+        Experience: ${experience.map(e => `${e.role || ''} at ${e.company || ''}: ${e.description || ''}`).join('\n')}
+        Education: ${education.map(e => `${e.degree || ''} at ${e.school || ''}: ${e.description || ''}`).join('\n')}
+        Projects: ${projects.map(p => `${p.name || ''} (${p.technologies || ''}): ${p.description || ''}`).join('\n')}
+        Skills: ${skills.join(', ')}
       `;
 
       const { suggestions } = await api.resumes.getSuggestions(resumeContent);
@@ -407,7 +425,7 @@ export const ResumeBuilder: React.FC = () => {
                     </button>
                   </div>
 
-                  {resumeData.experience.map((exp) => (
+                  {(resumeData.experience || []).map((exp) => (
                     <div key={exp.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative group">
                       <button
                         onClick={() => removeExperience(exp.id)}
@@ -419,7 +437,7 @@ export const ResumeBuilder: React.FC = () => {
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase">Role</label>
                           <input
-                            value={exp.role}
+                            value={exp.role || ''}
                             onChange={(e) => updateExperience(exp.id, 'role', e.target.value)}
                             className="w-full font-semibold bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                           />
@@ -427,7 +445,7 @@ export const ResumeBuilder: React.FC = () => {
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase">Company</label>
                           <input
-                            value={exp.company}
+                            value={exp.company || ''}
                             onChange={(e) => updateExperience(exp.id, 'company', e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                           />
@@ -436,7 +454,7 @@ export const ResumeBuilder: React.FC = () => {
                       <div className="space-y-1 mb-3">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Date Range</label>
                         <input
-                          value={exp.date}
+                          value={exp.date || ''}
                           onChange={(e) => updateExperience(exp.id, 'date', e.target.value)}
                           className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                         />
@@ -444,7 +462,7 @@ export const ResumeBuilder: React.FC = () => {
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Description</label>
                         <textarea
-                          value={exp.description}
+                          value={exp.description || ''}
                           onChange={(e) => updateExperience(exp.id, 'description', e.target.value)}
                           rows={3}
                           className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none resize-none"
@@ -452,7 +470,7 @@ export const ResumeBuilder: React.FC = () => {
                       </div>
                     </div>
                   ))}
-                  {resumeData.experience.length === 0 && (
+                  {(resumeData.experience || []).length === 0 && (
                     <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-xl text-slate-400">
                       No experience added yet.
                     </div>
@@ -472,7 +490,7 @@ export const ResumeBuilder: React.FC = () => {
                     </button>
                   </div>
 
-                  {resumeData.education.map((edu) => (
+                  {(resumeData.education || []).map((edu) => (
                     <div key={edu.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative group">
                       <button
                         onClick={() => removeEducation(edu.id)}
@@ -484,7 +502,7 @@ export const ResumeBuilder: React.FC = () => {
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase">Degree</label>
                           <input
-                            value={edu.degree}
+                            value={edu.degree || ''}
                             onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)}
                             className="w-full font-semibold bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                           />
@@ -492,7 +510,7 @@ export const ResumeBuilder: React.FC = () => {
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase">School</label>
                           <input
-                            value={edu.school}
+                            value={edu.school || ''}
                             onChange={(e) => updateEducation(edu.id, 'school', e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                           />
@@ -501,7 +519,7 @@ export const ResumeBuilder: React.FC = () => {
                       <div className="space-y-1 mb-3">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Date Range</label>
                         <input
-                          value={edu.date}
+                          value={edu.date || ''}
                           onChange={(e) => updateEducation(edu.id, 'date', e.target.value)}
                           className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                         />
@@ -509,7 +527,7 @@ export const ResumeBuilder: React.FC = () => {
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Details (GPA, Honors)</label>
                         <textarea
-                          value={edu.description}
+                          value={edu.description || ''}
                           onChange={(e) => updateEducation(edu.id, 'description', e.target.value)}
                           rows={2}
                           className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none resize-none"
@@ -532,7 +550,7 @@ export const ResumeBuilder: React.FC = () => {
                     </button>
                   </div>
 
-                  {resumeData.projects.map((proj) => (
+                  {(resumeData.projects || []).map((proj) => (
                     <div key={proj.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative group">
                       <button
                         onClick={() => removeProject(proj.id)}
@@ -544,7 +562,7 @@ export const ResumeBuilder: React.FC = () => {
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase">Project Name</label>
                           <input
-                            value={proj.name}
+                            value={proj.name || ''}
                             onChange={(e) => updateProject(proj.id, 'name', e.target.value)}
                             className="w-full font-semibold bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                           />
@@ -552,7 +570,7 @@ export const ResumeBuilder: React.FC = () => {
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase">Technologies</label>
                           <input
-                            value={proj.technologies}
+                            value={proj.technologies || ''}
                             onChange={(e) => updateProject(proj.id, 'technologies', e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                           />
@@ -561,7 +579,7 @@ export const ResumeBuilder: React.FC = () => {
                       <div className="space-y-1 mb-3">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Date</label>
                         <input
-                          value={proj.date}
+                          value={proj.date || ''}
                           onChange={(e) => updateProject(proj.id, 'date', e.target.value)}
                           className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                         />
@@ -569,7 +587,7 @@ export const ResumeBuilder: React.FC = () => {
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Description</label>
                         <textarea
-                          value={proj.description}
+                          value={proj.description || ''}
                           onChange={(e) => updateProject(proj.id, 'description', e.target.value)}
                           rows={3}
                           className="w-full bg-white border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none resize-none"
@@ -587,7 +605,7 @@ export const ResumeBuilder: React.FC = () => {
                     <label className="text-xs font-semibold text-slate-500 uppercase">Skills (Comma separated)</label>
                     <textarea
                       rows={4}
-                      value={resumeData.skills.join(', ')}
+                      value={(resumeData.skills || []).join(', ')}
                       onChange={(e) => updateSkills(e.target.value)}
                       className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all resize-none"
                     />
@@ -596,8 +614,8 @@ export const ResumeBuilder: React.FC = () => {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-4">
-                    {resumeData.skills.map((skill, i) => (
-                      skill.trim() && (
+                    {(resumeData.skills || []).map((skill, i) => (
+                      skill && skill.trim() && (
                         <span key={i} className="text-sm font-medium bg-teal-50 text-teal-700 px-3 py-1 rounded-full border border-teal-100">
                           {skill}
                         </span>
@@ -617,34 +635,34 @@ export const ResumeBuilder: React.FC = () => {
               <JakeTemplate
                 data={{
                   personalInfo: {
-                    fullName: resumeData.fullName,
-                    email: resumeData.email,
-                    phone: resumeData.phone,
-                    linkedin: 'linkedin.com/in/alex', // Placeholder or add field
-                    github: 'github.com/alex', // Placeholder or add field
-                    website: 'alex.com' // Placeholder or add field
+                    fullName: resumeData.fullName || '',
+                    email: resumeData.email || '',
+                    phone: resumeData.phone || '',
+                    linkedin: 'linkedin.com/in/alex',
+                    github: 'github.com/alex',
+                    website: 'alex.com'
                   },
-                  education: resumeData.education.map(edu => ({
-                    school: edu.school,
-                    degree: edu.degree,
-                    location: 'Location', // Placeholder or add field
-                    date: edu.date
+                  education: (resumeData.education || []).map(edu => ({
+                    school: edu.school || '',
+                    degree: edu.degree || '',
+                    location: 'Location',
+                    date: edu.date || ''
                   })),
-                  experience: resumeData.experience.map(exp => ({
-                    company: exp.company,
-                    title: exp.role,
-                    location: 'Location', // Placeholder or add field
-                    date: exp.date,
-                    description: exp.description.split('. ').filter(Boolean).map(d => d.endsWith('.') ? d : d + '.')
+                  experience: (resumeData.experience || []).map(exp => ({
+                    company: exp.company || '',
+                    title: exp.role || '',
+                    location: 'Location',
+                    date: exp.date || '',
+                    description: (exp.description || '').split('. ').filter(Boolean).map(d => d.endsWith('.') ? d : d + '.')
                   })),
-                  projects: resumeData.projects.map(proj => ({
-                    name: proj.name,
-                    technologies: proj.technologies,
-                    date: proj.date,
-                    description: proj.description.split('. ').filter(Boolean).map(d => d.endsWith('.') ? d : d + '.')
+                  projects: (resumeData.projects || []).map(proj => ({
+                    name: proj.name || '',
+                    technologies: proj.technologies || '',
+                    date: proj.date || '',
+                    description: (proj.description || '').split('. ').filter(Boolean).map(d => d.endsWith('.') ? d : d + '.')
                   })),
                   skills: {
-                    languages: resumeData.skills.join(', '),
+                    languages: (resumeData.skills || []).join(', '),
                     frameworks: '',
                     tools: '',
                   }
@@ -676,11 +694,11 @@ export const ResumeBuilder: React.FC = () => {
                   )}
 
                   {/* Experience */}
-                  {resumeData.experience.length > 0 && (
+                  {(resumeData.experience || []).length > 0 && (
                     <section>
                       <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Experience</h3>
                       <div className="space-y-4">
-                        {resumeData.experience.map((exp) => (
+                        {(resumeData.experience || []).map((exp) => (
                           <div key={exp.id}>
                             <div className="flex justify-between items-baseline mb-1">
                               <h4 className="font-bold text-slate-800">{exp.role}</h4>
@@ -695,11 +713,11 @@ export const ResumeBuilder: React.FC = () => {
                   )}
 
                   {/* Education */}
-                  {resumeData.education.length > 0 && (
+                  {(resumeData.education || []).length > 0 && (
                     <section>
                       <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Education</h3>
                       <div className="space-y-4">
-                        {resumeData.education.map((edu) => (
+                        {(resumeData.education || []).map((edu) => (
                           <div key={edu.id}>
                             <div className="flex justify-between items-baseline mb-1">
                               <h4 className="font-bold text-slate-800">{edu.degree}</h4>
@@ -714,11 +732,11 @@ export const ResumeBuilder: React.FC = () => {
                   )}
 
                   {/* Projects */}
-                  {resumeData.projects.length > 0 && (
+                  {(resumeData.projects || []).length > 0 && (
                     <section>
                       <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Projects</h3>
                       <div className="space-y-4">
-                        {resumeData.projects.map((proj) => (
+                        {(resumeData.projects || []).map((proj) => (
                           <div key={proj.id}>
                             <div className="flex justify-between items-baseline mb-1">
                               <h4 className="font-bold text-slate-800">{proj.name}</h4>
@@ -733,12 +751,12 @@ export const ResumeBuilder: React.FC = () => {
                   )}
 
                   {/* Skills */}
-                  {resumeData.skills.length > 0 && resumeData.skills[0] !== "" && (
+                  {(resumeData.skills || []).length > 0 && (resumeData.skills || [])[0] !== "" && (
                     <section>
                       <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-3">Skills</h3>
                       <div className="flex flex-wrap gap-2">
-                        {resumeData.skills.map((skill, i) => (
-                          skill.trim() && (
+                        {(resumeData.skills || []).map((skill, i) => (
+                          skill && skill.trim() && (
                             <span key={i} className="text-xs font-medium bg-slate-100 text-slate-700 px-2 py-1 rounded print:border print:border-slate-200">
                               {skill}
                             </span>

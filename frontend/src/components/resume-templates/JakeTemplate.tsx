@@ -72,40 +72,43 @@ export const JakeTemplate: React.FC<JakeTemplateProps> = ({ data }) => {
             </div>
 
             {/* Education */}
+            {(data.education || []).length > 0 && (
             <section className="mb-4">
                 <h2 className="text-lg font-bold uppercase border-b border-black mb-2">Education</h2>
                 <div className="space-y-2">
-                    {data.education.map((edu, index) => (
+                    {(data.education || []).map((edu, index) => (
                         <div key={index}>
                             <div className="flex justify-between font-bold">
-                                <span>{edu.school}</span>
-                                <span>{edu.location}</span>
+                                <span>{edu.school || ''}</span>
+                                <span>{edu.location || ''}</span>
                             </div>
                             <div className="flex justify-between italic text-sm">
-                                <span>{edu.degree}</span>
-                                <span>{edu.date}</span>
+                                <span>{edu.degree || ''}</span>
+                                <span>{edu.date || ''}</span>
                             </div>
                         </div>
                     ))}
                 </div>
             </section>
+            )}
 
             {/* Experience */}
+            {(data.experience || []).length > 0 && (
             <section className="mb-4">
                 <h2 className="text-lg font-bold uppercase border-b border-black mb-2">Experience</h2>
                 <div className="space-y-4">
-                    {data.experience.map((exp, index) => (
+                    {(data.experience || []).map((exp, index) => (
                         <div key={index}>
                             <div className="flex justify-between font-bold">
-                                <span>{exp.title}</span>
-                                <span>{exp.date}</span>
+                                <span>{exp.title || ''}</span>
+                                <span>{exp.date || ''}</span>
                             </div>
                             <div className="flex justify-between italic text-sm mb-1">
-                                <span>{exp.company}</span>
-                                <span>{exp.location}</span>
+                                <span>{exp.company || ''}</span>
+                                <span>{exp.location || ''}</span>
                             </div>
                             <ul className="list-disc list-outside ml-4 text-sm space-y-1">
-                                {exp.description.map((desc, i) => (
+                                {(exp.description || []).map((desc, i) => (
                                     <li key={i}>{desc}</li>
                                 ))}
                             </ul>
@@ -113,22 +116,24 @@ export const JakeTemplate: React.FC<JakeTemplateProps> = ({ data }) => {
                     ))}
                 </div>
             </section>
+            )}
 
             {/* Projects */}
+            {(data.projects || []).length > 0 && (
             <section className="mb-4">
                 <h2 className="text-lg font-bold uppercase border-b border-black mb-2">Projects</h2>
                 <div className="space-y-3">
-                    {data.projects.map((project, index) => (
+                    {(data.projects || []).map((project, index) => (
                         <div key={index}>
                             <div className="flex justify-between items-baseline mb-1">
                                 <div>
-                                    <span className="font-bold">{project.name}</span>
-                                    <span className="italic text-sm ml-2">| {project.technologies}</span>
+                                    <span className="font-bold">{project.name || ''}</span>
+                                    <span className="italic text-sm ml-2">| {project.technologies || ''}</span>
                                 </div>
-                                <span className="text-sm italic">{project.date}</span>
+                                <span className="text-sm italic">{project.date || ''}</span>
                             </div>
                             <ul className="list-disc list-outside ml-4 text-sm space-y-1">
-                                {project.description.map((desc, i) => (
+                                {(project.description || []).map((desc, i) => (
                                     <li key={i}>{desc}</li>
                                 ))}
                             </ul>
@@ -136,17 +141,20 @@ export const JakeTemplate: React.FC<JakeTemplateProps> = ({ data }) => {
                     ))}
                 </div>
             </section>
+            )}
 
             {/* Technical Skills */}
+            {data.skills && (
             <section>
                 <h2 className="text-lg font-bold uppercase border-b border-black mb-2">Technical Skills</h2>
                 <div className="text-sm space-y-1">
-                    <div><span className="font-bold">Languages:</span> {data.skills.languages}</div>
-                    <div><span className="font-bold">Frameworks:</span> {data.skills.frameworks}</div>
-                    <div><span className="font-bold">Developer Tools:</span> {data.skills.tools}</div>
+                    {data.skills.languages && <div><span className="font-bold">Languages:</span> {data.skills.languages}</div>}
+                    {data.skills.frameworks && <div><span className="font-bold">Frameworks:</span> {data.skills.frameworks}</div>}
+                    {data.skills.tools && <div><span className="font-bold">Developer Tools:</span> {data.skills.tools}</div>}
                     {data.skills.libraries && <div><span className="font-bold">Libraries:</span> {data.skills.libraries}</div>}
                 </div>
             </section>
+            )}
         </div>
     );
 };
