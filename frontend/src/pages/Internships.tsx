@@ -67,10 +67,22 @@ export const Internships: React.FC = () => {
     toast.success('Redirecting to application...');
   };
 
-  // Client-side filtering for types if needed, though Adzuna API supports it better server-side
-  // For now, we'll just display what we get
-  // The API returns { results: [...] }, so we need to access the results property
-  const filteredInternships = internships?.results || [];
+  // Client-side filtering for job types
+  const allInternships = internships?.results || [];
+  
+  const filteredInternships = selectedTypes.length > 0
+    ? allInternships.filter((job: Internship) => {
+        const contractType = job.contract_time?.toLowerCase().replace('_', '-') || '';
+        return selectedTypes.some(type => {
+          const typeLC = type.toLowerCase();
+          if (typeLC === 'full-time') return contractType.includes('full');
+          if (typeLC === 'part-time') return contractType.includes('part');
+          if (typeLC === 'contract') return contractType.includes('contract');
+          if (typeLC === 'permanent') return contractType.includes('permanent');
+          return false;
+        });
+      })
+    : allInternships;
 
   return (
     <div className="min-h-screen bg-slate-50">

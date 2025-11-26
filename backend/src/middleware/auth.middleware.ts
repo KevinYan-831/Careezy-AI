@@ -9,30 +9,38 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      // Return 401 if no authorization header is present
+      console.log('Auth: No authorization header present');
       res.status(401).json({ error: 'No authorization header' });
       return;
     }
 
     const token = authHeader.split(' ')[1];
     if (!token) {
-      // Return 401 if no token is provided
+      console.log('Auth: No token in authorization header');
       res.status(401).json({ error: 'No token provided' });
       return;
     }
 
+    console.log('Auth: Validating token...');
     const { data: { user }, error } = await getSupabase().auth.getUser(token);
 
-    if (error || !user) {
-      // Return 401 if the token is invalid or user is not found
-      res.status(401).json({ error: 'Invalid token' });
+    if (error) {
+      console.error('Auth: Token validation error:', error.message);
+      res.status(401).json({ error: 'Invalid token', details: error.message });
       return;
     }
 
+    if (!user) {
+      console.log('Auth: No user found for token');
+      res.status(401).json({ error: 'User not found' });
+      return;
+    }
+
+    console.log('Auth: User authenticated:', user.id);
     req.user = user;
     next();
-  } catch (error) {
-    console.error('Auth Middleware Error:', error);
-    res.status(401).json({ error: 'Authentication failed' });
+  } catch (error: any) {
+    console.error('Auth Middleware Error:', error?.message || error);
+    res.status(401).json({ error: 'Authentication failed', details: error?.message });
   }
 };
