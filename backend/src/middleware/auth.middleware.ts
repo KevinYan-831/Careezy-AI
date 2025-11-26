@@ -21,11 +21,15 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       return;
     }
 
-    console.log('Auth: Validating token...');
-    const { data: { user }, error } = await getSupabase().auth.getUser(token);
+    console.log('Auth: Validating token (first 20 chars):', token.substring(0, 20) + '...');
+    
+    const supabase = getSupabase();
+    const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error) {
       console.error('Auth: Token validation error:', error.message);
+      console.error('Auth: Error code:', error.status);
+      console.error('Auth: Full error:', JSON.stringify(error));
       res.status(401).json({ error: 'Invalid token', details: error.message });
       return;
     }
