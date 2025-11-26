@@ -217,8 +217,6 @@ export const ResumeBuilder: React.FC = () => {
         if (response && response.resume && response.resume.id) {
           setCurrentResumeId(response.resume.id);
           toast.success('Resume created successfully!', { id: loadingToast, icon: '✅', duration: 3000 });
-          // Optionally navigate to the edit URL to persist state on reload
-          // navigate(`/resume/${response.resume.id}`, { replace: true });
         }
       }
     } catch (error: any) {
@@ -227,8 +225,8 @@ export const ResumeBuilder: React.FC = () => {
       let errorMessage = 'Failed to save resume';
       if (error.message?.includes('Failed to fetch')) {
         errorMessage = 'Network error - please check your connection';
-      } else if (error.message?.includes('401')) {
-        errorMessage = 'Session expired - please log in again';
+      } else if (error.message?.includes('401') || error.message?.includes('create resume')) {
+        errorMessage = 'Please log in to save your resume';
       } else if (error.message?.includes('500')) {
         errorMessage = 'Server error - please try again later';
       }

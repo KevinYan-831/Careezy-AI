@@ -18,13 +18,19 @@ interface ResumeData {
 
 // Helper function to get auth headers
 async function getAuthHeaders(): Promise<HeadersInit> {
-    const { data: { session } } = await getSupabaseClient().auth.getSession();
+    const { data: { session }, error } = await getSupabaseClient().auth.getSession();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     };
 
+    if (error) {
+        console.error('Error getting session:', error);
+    }
+
     if (session?.access_token) {
         headers['Authorization'] = `Bearer ${session.access_token}`;
+    } else {
+        console.warn('No active session - user may need to log in');
     }
 
     return headers;
