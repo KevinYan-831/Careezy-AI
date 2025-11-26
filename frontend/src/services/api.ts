@@ -18,22 +18,44 @@ interface ResumeData {
 
 // Helper function to get auth headers
 async function getAuthHeaders(): Promise<HeadersInit> {
-    const { data: { session }, error } = await getSupabaseClient().auth.getSession();
-    const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-    };
+    try {
+        const supabase = getSupabaseClient();
+        
+        // First try getSession (cached)
+        let { data: { session }, error } = await supabase.auth.getSession();
+        
+        // If no session, try to refresh from storage
+        if (!session && !error) {
+            console.log('Auth: No cached session, checking for stored session...');
+            const { data } = await supabase.auth.refreshSession();
+            session = data.session;
+        }
+        
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+        };
 
-    if (error) {
-        console.error('Error getting session:', error);
+        if (error) {
+            console.error('Auth: Error getting session:', error.message);
+            return headers;
+        }
+
+        if (session?.access_token) {
+            console.log('Auth: Token found, user:', session.user?.email);
+            headers['Authorization'] = `Bearer ${session.access_token}`;
+        } else {
+            console.warn('Auth: No active session found');
+            // Check localStorage directly as fallback
+            const storageKey = 'sb-sprnnfloasrxygjvixcl-auth-token';
+            const storedSession = localStorage.getItem(storageKey);
+            console.log('Auth: LocalStorage has token:', !!storedSession);
+        }
+
+        return headers;
+    } catch (err: any) {
+        console.error('Auth: Error in getAuthHeaders:', err?.message || err);
+        return { 'Content-Type': 'application/json' };
     }
-
-    if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-    } else {
-        console.warn('No active session - user may need to log in');
-    }
-
-    return headers;
 }
 
 export const api = {

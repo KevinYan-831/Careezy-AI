@@ -10,7 +10,14 @@ export function getSupabaseClient(): SupabaseClient {
         if (!supabaseUrl || !supabaseAnonKey) {
             throw new Error('Missing Supabase environment variables (VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY)');
         }
-        supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+        supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true,
+                storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+            }
+        });
     }
     return supabaseClient;
 }
