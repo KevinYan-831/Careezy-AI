@@ -13,7 +13,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '5000', 10);
+const isDev = process.env.NODE_ENV !== 'production';
+const PORT = isDev ? 3001 : parseInt(process.env.PORT || '5000', 10);
 
 // Trust proxy for Replit/reverse proxy environments
 app.set('trust proxy', 1);

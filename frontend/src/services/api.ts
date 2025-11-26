@@ -1,6 +1,8 @@
 import { getSupabaseClient } from '../lib/supabase';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL 
+    ? `${import.meta.env.VITE_API_URL}/api` 
+    : '/api';
 
 interface ResumeData {
     fullName: string;
