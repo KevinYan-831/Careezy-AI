@@ -21,7 +21,13 @@ export function Login() {
             await signIn(email, password);
             navigate('/dashboard');
         } catch (err: any) {
-            setError(err.message || 'Failed to sign in');
+            if (err.message?.includes('Invalid login credentials')) {
+                setError('Invalid email or password. Please check your credentials and try again.');
+            } else if (err.message?.includes('Email not confirmed')) {
+                setError('Please confirm your email address before logging in. Check your inbox for the confirmation link.');
+            } else {
+                setError(err.message || 'Failed to sign in. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
