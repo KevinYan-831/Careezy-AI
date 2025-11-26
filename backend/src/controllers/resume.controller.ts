@@ -84,20 +84,32 @@ export class ResumeController {
       const userId = req.user?.id;
       const resumeData = req.body;
 
+      console.log('Update resume request:', { id, userId });
+
+      if (!userId) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+
       // Wrap the resume data in a content field for storage
       const { data, error } = await getSupabase()
         .from('resumes')
-        .update({ content: resumeData })
+        .update({ content: resumeData, updated_at: new Date().toISOString() })
         .eq('id', id)
         .eq('user_id', userId)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
+
+      console.log('Resume updated successfully:', data?.id);
       res.json(data);
-    } catch (error) {
-      console.error('Error updating resume:', error);
-      res.status(500).json({ error: 'Failed to update resume' });
+    } catch (error: any) {
+      console.error('Error updating resume:', error?.message || error);
+      res.status(500).json({ error: 'Failed to update resume', details: error?.message });
     }
   }
 

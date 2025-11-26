@@ -210,13 +210,19 @@ export const ResumeBuilder: React.FC = () => {
     const loadingToast = toast.loading('Saving resume...');
     try {
       if (currentResumeId) {
-        await api.resumes.update(currentResumeId, resumeData);
+        console.log('Updating resume:', currentResumeId);
+        const response = await api.resumes.update(currentResumeId, resumeData);
+        console.log('Update response:', response);
         toast.success('Resume updated successfully!', { id: loadingToast, icon: '✅', duration: 3000 });
       } else {
+        console.log('Creating new resume');
         const response = await api.resumes.create(resumeData);
+        console.log('Create response:', response);
         if (response && response.resume && response.resume.id) {
           setCurrentResumeId(response.resume.id);
           toast.success('Resume created successfully!', { id: loadingToast, icon: '✅', duration: 3000 });
+        } else {
+          toast.success('Resume saved!', { id: loadingToast, icon: '✅', duration: 3000 });
         }
       }
     } catch (error: any) {
@@ -225,13 +231,14 @@ export const ResumeBuilder: React.FC = () => {
       let errorMessage = 'Failed to save resume';
       if (error.message?.includes('Failed to fetch')) {
         errorMessage = 'Network error - please check your connection';
-      } else if (error.message?.includes('401') || error.message?.includes('create resume')) {
+      } else if (error.message?.includes('401') || error.message?.includes('update resume') || error.message?.includes('create resume')) {
         errorMessage = 'Please log in to save your resume';
       } else if (error.message?.includes('500')) {
         errorMessage = 'Server error - please try again later';
       }
 
-      toast.error(errorMessage, { id: loadingToast, icon: '⚠️', duration: 4000 });
+      toast.dismiss(loadingToast);
+      toast.error(errorMessage, { icon: '⚠️', duration: 4000 });
     }
   };
 
